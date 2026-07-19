@@ -79,8 +79,6 @@ function render(data) {
     .onNodeClick(node => showDetail(node))
     .onBackgroundClick(closeDetail);
 
-  window.__lowballGraph = Graph; // exposed so the judge-demo tour can auto-spin it
-
   // Denser graph (~200 nodes): stronger repulsion + longer links spread it into
   // a full ball; pull the camera back so the whole sphere is in frame.
   Graph.d3Force('charge').strength(-90);
