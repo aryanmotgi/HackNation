@@ -1,0 +1,51 @@
+<aside class="side">
+  <div class="side__brand">
+    <span class="side__logo">L</span>
+    <span class="side__brandtext">
+      <div class="side__brandname">LOWBALL</div>
+      <div class="side__brandsub">Voice sales OS</div>
+    </span>
+  </div>
+
+  <div class="side__ws">
+    <span class="side__wsavatar">NM</span>
+    <span>
+      <div class="side__wsname">Nova Manufacturing</div>
+      <div class="side__wssub">Manufacturer workspace</div>
+    </span>
+  </div>
+
+  <div class="side__label">Workspace</div>
+  <a class="side__link {{ 'side__link--active' if active=='overview' }}" href="/dashboard"><span class="side__ic">▨</span> Overview</a>
+  <a class="side__link {{ 'side__link--active' if active=='live' }}" href="/call"><span class="side__ic">◉</span> Live demo</a>
+  <a class="side__link {{ 'side__link--active' if active=='negotiations' }}" href="/messaging"><span class="side__ic">✎</span> Negotiations</a>
+  <a class="side__link {{ 'side__link--active' if active=='chat' }}" href="/chat"><span class="side__ic">✦</span> Ask agent</a>
+  <a class="side__link {{ 'side__link--active' if active=='memory' }}" href="/graph"><span class="side__ic">⬡</span> Memory</a>
+  <a class="side__link {{ 'side__link--active' if active=='approvals' }}" href="/approval"><span class="side__ic">⚑</span> Approvals <span class="side__badge side__badge--alert" id="side-approvals" hidden>0</span></a>
+
+  <div class="side__label">Manage</div>
+  <a class="side__link {{ 'side__link--active' if active=='setup' }}" href="/"><span class="side__ic">⚙</span> Agent setup</a>
+
+  <div class="side__foot">
+    <div>
+      <div class="side__status"><span class="side__statusdot"></span> Agent online</div>
+      <div class="side__statussub">Demo workspace · 3 languages</div>
+    </div>
+    <button class="side__judge" id="judge-btn" type="button">▷ Run judge demo</button>
+    <div class="side__user">
+      <span class="side__useravatar">AM</span>
+      <span>
+        <div class="side__username">Aryan Motgi</div>
+        <div class="side__usersub">Workspace admin</div>
+      </span>
+    </div>
+  </div>
+</aside>
+<script>
+  // Keep the Approvals badge in sync on every page that shows the sidebar.
+  fetch('/api/sessions').then(function (r) { return r.json(); }).then(function (d) {
+    var n = (d.customers || []).filter(function (c) { return c.status === 'needs-human' || c.escalate_flag; }).length;
+    var b = document.getElementById('side-approvals');
+    if (b) { b.textContent = n; b.hidden = n === 0; }
+  }).catch(function () {});
+</script>

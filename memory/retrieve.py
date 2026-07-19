@@ -163,6 +163,66 @@ def get_context(customer_id: str) -> dict[str, Any]:
     }
 
 
+def get_customer_subgraph(customer_id: str) -> dict[str, Any]:
+    """Full customer subgraph for LLM context — superset of get_context().
+
+    Adds exhibited behaviors (EXHIBITS edges), all calls with deal linkage
+    (ABOUT edge), all deals, and a score trend derived from chronological call
+    history. Powers the memory Q&A chat. Raises KeyError for unknown customers.
+    """
+    base = get_context(customer_id)
+    conn = _conn()
+
+    exhibited_behaviors = [
+        {"pattern_id": r[0], "label": r[1], "description": r[2]}
+        for r in _rows(conn.execute(
+            "MATCH (c:Customer {id:$id})-[:EXHIBITS]->(p:Pattern) "
+            "RETURN p.id, p.label, p.detail",
+            {"id": customer_id},
+        ))
+    ]
+
+    all_calls = [
+        {"id": r[0], "ts": r[1], "summary": r[2],
+         "sentiment": r[3], "outcome_score": r[4], "deal_id": r[5]}
+        for r in _rows(conn.execute(
+            "MATCH (c:Customer {id:$id})-[:HAD_CALL]->(k:Call) "
+            "OPTIONAL MATCH (k)-[:ABOUT]->(d:Deal) "
+            "RETURN k.id, k.ts, k.summary, k.sentiment, k.outcome_score, d.id "
+            "ORDER BY k.ts ASC",
+            {"id": customer_id},
+        ))
+    ]
+
+    all_deals = [
+        {"id": r[0], "product": r[1], "floor_price": r[2],
+         "target_price": r[3], "currency": r[4], "status": r[5]}
+        for r in _rows(conn.execute(
+            "MATCH (c:Customer {id:$id})-[:HAS_DEAL]->(d:Deal) "
+            "RETURN d.id, d.product, d.floor_price, d.target_price, d.currency, d.status",
+            {"id": customer_id},
+        ))
+    ]
+
+    scores_asc = [c["outcome_score"] for c in all_calls]
+    if len(scores_asc) < 2:
+        direction = "insufficient_data"
+    elif all(a > b for a, b in zip(scores_asc, scores_asc[1:])):
+        direction = "declining"
+    elif all(a < b for a, b in zip(scores_asc, scores_asc[1:])):
+        direction = "improving"
+    else:
+        direction = "stable"
+
+    return {
+        **base,
+        "exhibited_behaviors": exhibited_behaviors,
+        "all_calls": all_calls,
+        "all_deals": all_deals,
+        "score_trend": {"scores_oldest_to_newest": scores_asc, "direction": direction},
+    }
+
+
 def search_patterns(query_text: str, k: int = 3) -> list[dict[str, Any]]:
     """Semantic tactic lookup via the HNSW vector index (RAG during a call)."""
     conn = _conn()

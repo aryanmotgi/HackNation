@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Approvals · Lowball</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/appshell.css">
+  <link rel="stylesheet" href="/static/approval.css">
+  <script src="/static/approval.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    {% set active = 'approvals' %}
+    {% include '_sidebar.html' %}
+
+    <div class="work">
+      <div class="topbar">
+        <div class="topbar__crumb"><b>Approvals</b> · Human-in-the-loop queue</div>
+        <div class="topbar__right">
+          <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
+        </div>
+      </div>
+
+      <div class="work__body">
+        <div class="work__demo">Human approval</div>
+        <div class="greet">
+          <div>
+            <h1 class="greet__h">Approval queue</h1>
+            <p class="greet__sub">When a deal crosses a hard rule — below floor, oversized order, or an angry
+              buyer asking for a manager — the agent stops and waits for you here.</p>
+          </div>
+        </div>
+
+        <div class="apv-triggers" id="apv-triggers"></div>
+
+        <div class="accounts__head" style="margin-top:26px">
+          <div class="accounts__title" id="apv-title">Pending requests</div>
+          <span class="accounts__label" id="apv-count">—</span>
+        </div>
+        <section id="apv-list" class="apv-list" aria-label="Approval requests">
+          <div class="loading">Loading queue…</div>
+        </section>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

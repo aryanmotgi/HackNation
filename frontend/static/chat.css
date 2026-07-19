@@ -1,0 +1,51 @@
+/* Chat page — Memory Q&A. Layers on appshell.css + styles.css bubbles. */
+
+.chat-wrap {
+  display: flex; flex-direction: column;
+  height: calc(100vh - 300px); min-height: 440px;
+  margin-top: 10px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden;
+}
+.chat-thread {
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+  gap: 16px; padding: 20px;
+}
+.chat-bar {
+  display: flex; gap: 10px; padding: 14px 16px; align-items: flex-end;
+  border-top: 1px solid var(--line); background: var(--bg); flex-shrink: 0;
+}
+.chat-input {
+  flex: 1; resize: none; font-family: var(--font-ui); font-size: 14px;
+  padding: 11px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+  line-height: 1.5; max-height: 120px; overflow-y: auto;
+}
+.chat-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-line); }
+.chat-input:disabled { opacity: .6; }
+
+.chat-controls { display: flex; align-items: center; gap: 8px; }
+.chat-label { font-size: 13px; color: var(--muted); }
+.chat-select {
+  font-family: var(--font-ui); font-size: 13.5px; padding: 8px 12px;
+  border-radius: var(--radius-sm); border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.chat-select:focus { outline: none; border-color: var(--green); }
+
+.chat-source {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+  font-family: var(--font-mono); padding: 2px 6px; border-radius: var(--radius-xs); margin-top: 8px;
+}
+.chat-typing { color: var(--muted); font-size: 20px; letter-spacing: 2px; padding: 2px 0; }
+
+/* suggestion chips under the greeting */
+.chat-suggest { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chat-suggest__chip {
+  font-size: 12.5px; color: var(--ink-2); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: 100px; padding: 7px 13px; cursor: pointer;
+}
+.chat-suggest__chip:hover { border-color: var(--green); color: var(--green-ink); }
+
+/* chat bubbles can go a touch wider than the messaging columns */
+.chat-thread .bubble { max-width: 74%; }

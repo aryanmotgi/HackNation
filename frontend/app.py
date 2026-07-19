@@ -10,13 +10,15 @@ Run:
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 
 from flask import Flask, jsonify, render_template, request
 
 from negotiation.arena import run_session
-from negotiation.llm import MODEL, using_live_model
+from negotiation.llm import MODEL, complete_json, using_live_model
+from memory.retrieve import get_customer_subgraph
 from intake.pdf_parse import parse_price_sheet
 from intake.questions import questions_for
 from intake.job_spec import build_job_spec, validate_spec, save_job_spec
@@ -92,6 +94,126 @@ def messaging():
 @app.route("/graph")
 def graph():
     return render_template("graph.html")
+
+
+@app.route("/approval")
+def approval():
+    # Human-in-the-loop queue — deals the agent escalated for a person to decide.
+    return render_template("approval.html")
+
+
+@app.route("/chat")
+def chat():
+    # Memory Q&A — ask the agent about customers, tactics, call history.
+    return render_template("chat.html")
+
+
+def _customer_system_prompt(ctx: dict) -> str:
+    """Structured LLM system prompt from a get_customer_subgraph() result."""
+    c = ctx["customer"]
+    lines = [
+        "You are Lowball Sales Intelligence — a B2B negotiation memory assistant for manufacturers.",
+        "Answer the manufacturer's question using the full customer memory below.",
+        'Return JSON: {"answer": "your answer here"}',
+        "",
+        "=== CUSTOMER PROFILE ===",
+        f"Name: {c['name']}",
+        f"Region: {c['region']}",
+        f"Negotiation style: {c['style']}",
+        f"Risk flags: {', '.join(c['risk_flags']) if c['risk_flags'] else 'none'}",
+        f"Escalation: {'YES — declining outcomes, needs human handoff' if ctx['escalate'] else 'no'}",
+        "",
+        "=== EXHIBITED BEHAVIORS (what this customer DOES in negotiations) ===",
+    ]
+    for b in ctx.get("exhibited_behaviors") or []:
+        lines.append(f"  * {b['label']}: {b['description']}")
+    if not ctx.get("exhibited_behaviors"):
+        lines.append("  (none recorded)")
+
+    lines += ["", "=== DEALS ==="]
+    for d in ctx.get("all_deals") or []:
+        lines.append(
+            f"  {d['product']} | floor ${d['floor_price']} | "
+            f"target ${d['target_price']} {d['currency']} | status: {d['status']}"
+        )
+
+    trend = ctx.get("score_trend", {})
+    lines += [
+        "",
+        "=== CALL HISTORY (oldest to newest) ===",
+        f"Score trend: {trend.get('direction', 'unknown')} | "
+        f"scores: {trend.get('scores_oldest_to_newest', [])}",
+        "",
+    ]
+    for call in ctx.get("all_calls") or []:
+        date = (call["ts"] or "")[:10]
+        lines.append(f"  {date} | sentiment {call['sentiment']:+.2f} | outcome {call['outcome_score']:.2f}")
+        lines.append(f"    {call['summary']}")
+
+    lines += ["", "=== WINNING TACTICS (what works on them) ==="]
+    for t in ctx.get("winning_tactics") or []:
+        src = " [transferred from lookalike]" if t["source"] == "lookalike" else ""
+        lines.append(f"  * {t['label']} (weight {t['weight']}){src}: {t['description']}")
+
+    lines += ["", "=== LOOKALIKE CUSTOMERS ==="]
+    for lk in ctx.get("lookalikes") or []:
+        lines.append(f"  * {lk['name']} ({lk['style']}, similarity {lk['weight']})")
+
+    return "\n".join(lines)
+
+
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    body = request.get_json(force=True) or {}
+    message = (body.get("message") or "").strip()
+    if not message:
+        return jsonify({"error": "No message."}), 400
+
+    customer_id = body.get("customer_id") or None
+    ctx = None
+
+    if customer_id:
+        try:
+            ctx = get_customer_subgraph(customer_id)
+        except KeyError:
+            return jsonify({"error": f"Unknown customer: {customer_id}"}), 404
+        system = _customer_system_prompt(ctx)
+    else:
+        snap = _snapshot()
+        ctx_text = json.dumps({
+            "metrics": snap["metrics"],
+            "customers": [
+                {"name": s["name"], "style": s["style"], "status": s["status"],
+                 "agreed_price": s.get("agreed_price"), "result": s["result"]}
+                for s in snap["customers"]
+            ],
+        }, indent=2)
+        system = (
+            "You are Lowball Sales Intelligence — a B2B negotiation memory assistant for manufacturers.\n"
+            "Answer the manufacturer's question using the negotiations summary below.\n"
+            'Return JSON: {"answer": "your answer here"}\n\n'
+            "NEGOTIATIONS SUMMARY:\n" + ctx_text
+        )
+
+    def mock():
+        if ctx:
+            name = ctx.get("customer", {}).get("name", customer_id)
+            return {"answer": f"[MOCK] Memory for {name} is loaded. Add OPENAI_API_KEY to .env for live answers."}
+        return {"answer": "[MOCK] Negotiation data for all customers is loaded. Add OPENAI_API_KEY to .env for live answers."}
+
+    result, source = complete_json(system, message, mock)
+    return jsonify({"answer": result.get("answer", "No answer returned."), "source": source})
+
+
+@app.route("/call")
+def call():
+    # In-browser call desk — the customer (you) dials the manufacturer's
+    # ElevenLabs agent. The public ConvAI widget connects the browser mic
+    # directly to the agent; no API key needed on this page.
+    return render_template(
+        "call.html",
+        agent_id=os.getenv("ELEVENLABS_AGENT_ID", ""),
+    )
 
 
 @app.route("/api/sessions")

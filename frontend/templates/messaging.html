@@ -3,34 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Messaging · Loomhaus Sales Desk</title>
+  <title>Negotiations · Lowball</title>
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/appshell.css">
   <script src="/static/messaging.js" defer></script>
 </head>
 <body>
-  <nav class="nav">
-    <div class="nav__brand"><span class="nav__mark"></span> Loomhaus · Sales Desk</div>
-    <div class="nav__links">
-      <a class="nav__link" href="/dashboard">Dashboard</a>
-      <a class="nav__link nav__link--active" href="/messaging">Messaging</a>
-      <a class="nav__link" href="/graph">Graph</a>
-    </div>
-    <div class="nav__spacer"></div>
-    <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
-  </nav>
+  <div class="shell">
+    {% set active = 'negotiations' %}
+    {% include '_sidebar.html' %}
 
-  <div class="page page--wide">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">Live Negotiations</p>
-        <h1 class="h1">Messaging</h1>
-        <p class="sub">Watch the same agent adapt to each customer — reasoning shown under every move.</p>
+    <div class="work">
+      <div class="topbar">
+        <div class="topbar__crumb"><b>Negotiations</b> · Live agent threads</div>
+        <div class="topbar__right">
+          <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
+          <button id="replay-btn" class="btn" type="button">↻ Replay round</button>
+        </div>
       </div>
-      <button id="replay-btn" class="btn">↻ Replay round</button>
-    </div>
 
-    <div id="board" class="board">
-      <div class="loading">Loading negotiations…</div>
+      <div class="work__body work__body--wide">
+        <div class="work__demo">Live negotiations</div>
+        <div class="greet">
+          <div>
+            <h1 class="greet__h">Messaging</h1>
+            <p class="greet__sub">Watch the same agent adapt to each customer — reasoning shown under every move.</p>
+          </div>
+        </div>
+
+        <div id="board" class="board">
+          <div class="loading">Loading negotiations…</div>
+        </div>
+      </div>
     </div>
   </div>
 </body>

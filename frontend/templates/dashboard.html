@@ -3,41 +3,69 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sales Desk · Dashboard</title>
+  <title>Overview · Lowball</title>
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/appshell.css">
   <script src="/static/dashboard.js" defer></script>
 </head>
 <body>
-  <nav class="nav">
-    <div class="nav__brand"><span class="nav__mark"></span> Loomhaus · Sales Desk</div>
-    <div class="nav__links">
-      <a class="nav__link nav__link--active" href="/dashboard">Dashboard</a>
-      <a class="nav__link" href="/messaging">Messaging</a>
-      <a class="nav__link" href="/graph">Graph</a>
-    </div>
-    <div class="nav__spacer"></div>
-    <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
-  </nav>
+  <div class="shell">
+    {% set active = 'overview' %}
+    {% include '_sidebar.html' %}
 
-  <main class="page">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">MANUFACTURER · MEMORY-DRIVEN NEGOTIATION</p>
-        <h1 class="h1">Sales Desk</h1>
-        <p class="sub">Live negotiation outcomes across accounts, driven by per-customer memory.</p>
+    <div class="work">
+      <div class="topbar">
+        <div class="topbar__crumb"><b>Overview</b> · Live Kuzu + negotiation data</div>
+        <div class="topbar__right">
+          <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
+          <button id="replay-btn" class="btn" type="button">▷ Start rehearsal</button>
+        </div>
       </div>
-      <button id="replay-btn" class="btn" type="button">↻ Replay round</button>
-    </div>
 
-    <section id="metrics" class="metrics" aria-label="Desk metrics"></section>
+      <div class="work__body">
+        <div class="work__demo">Demo workspace</div>
+        <div class="greet">
+          <div>
+            <h1 class="greet__h" id="greet">Good afternoon, Aryan.</h1>
+            <p class="greet__sub">Here's what your voice sales agent is handling for Nova Manufacturing.</p>
+          </div>
+          <div class="greet__actions">
+            <a class="linkbtn" href="/">Manage agent</a>
+            <button id="replay-btn2" class="btn btn--ghost" type="button">↻ Replay real negotiations</button>
+          </div>
+        </div>
 
-    <div class="section-head">
-      <div class="section-title">Customer accounts</div>
+        <section id="metrics" class="metrics2" aria-label="Desk metrics"></section>
+
+        <div class="split">
+          <section id="feat" class="feat" aria-label="Featured negotiation">
+            <div class="loading">Loading…</div>
+          </section>
+
+          <section class="approve" aria-label="Approval queue">
+            <div class="approve__head">
+              <span class="approve__title">Approval queue</span>
+              <span class="approve__count" id="approve-count">0 pending</span>
+            </div>
+            <p class="approve__sub">Human decisions your agent is waiting on.</p>
+            <div id="approve-item"></div>
+            <a class="approve__btn" href="/approval" style="display:block;text-align:center;text-decoration:none" id="approve-btn">Review request</a>
+          </section>
+        </div>
+
+        <div class="accounts__head">
+          <div>
+            <div class="accounts__label">Real backend snapshot</div>
+            <div class="accounts__title">Customer accounts</div>
+          </div>
+          <a class="accounts__link" href="/graph">View negotiation evidence →</a>
+        </div>
+        <section id="card-grid" class="accounts__grid" aria-label="Customer cards">
+          <div class="loading">Loading desk…</div>
+        </section>
+      </div>
     </div>
-    <section id="card-grid" class="card-grid" aria-label="Customer cards">
-      <div class="loading">Loading desk…</div>
-    </section>
-  </main>
+  </div>
 
   <div id="backdrop" class="panel-backdrop"></div>
   <aside id="panel" class="panel" aria-hidden="true">

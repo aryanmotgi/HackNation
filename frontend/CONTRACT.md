@@ -14,7 +14,7 @@ Do NOT edit `app.py`, `static/styles.css`, or the other view's files.
 ## Shared nav markup (put at top of <body> on BOTH pages; set `--active` on current)
 ```html
 <nav class="nav">
-  <div class="nav__brand"><span class="nav__mark"></span> Loomhaus · Sales Desk</div>
+  <div class="nav__brand"><span class="nav__mark"></span> Lowball · Sales Desk</div>
   <div class="nav__links">
     <a class="nav__link nav__link--active" href="/">Dashboard</a>
     <a class="nav__link" href="/messaging">Messaging</a>

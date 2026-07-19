@@ -16,7 +16,7 @@ const TYPE_COLOR = {
 const RED = getVar('--red');
 const GREEN = getVar('--green');
 
-const SIZE = { Manufacturer: 10, Customer: 7, Deal: 4.5, Call: 3.5, Pattern: 4.5 };
+const SIZE = { Manufacturer: 14, Customer: 5, Deal: 2.6, Call: 1.8, Pattern: 6 };
 
 let Graph = null;
 
@@ -67,20 +67,25 @@ function render(data) {
     .nodeLabel(n => `<div style="font-family:'IBM Plex Mono',monospace;font-size:11px;
         background:#0E1512;color:#fff;padding:4px 8px;border-radius:6px">
         ${n.type} · ${n.label}</div>`)
-    .linkColor(l => l.similar ? GREEN : '#B7C0B8')
-    .linkWidth(l => l.similar ? 1.8 : 0.4)
-    .linkOpacity(0.55)
+    .linkColor(l => l.similar ? GREEN : '#C2CAC3')
+    .linkWidth(l => l.similar ? 1.4 : 0.25)
+    .linkOpacity(0.28)
     .linkCurvature(l => l.similar ? 0.25 : 0)
-    .linkDirectionalParticles(l => l.similar ? 3 : 0)
-    .linkDirectionalParticleWidth(2)
+    .linkDirectionalParticles(l => l.similar ? 2 : 0)
+    .linkDirectionalParticleWidth(1.6)
     .linkDirectionalParticleColor(() => GREEN)
     .linkLabel(l => l.type)
+    .cooldownTicks(120)
     .onNodeClick(node => showDetail(node))
     .onBackgroundClick(closeDetail);
 
-  // spread things out a bit; drag to rotate, scroll to zoom (orbit controls default)
-  Graph.d3Force('charge').strength(-140);
-  Graph.cameraPosition({ z: 320 });
+  // Denser graph (~200 nodes): stronger repulsion + longer links spread it into
+  // a full ball; pull the camera back so the whole sphere is in frame.
+  Graph.d3Force('charge').strength(-90);
+  Graph.d3Force('link').distance(l => l.similar ? 40 : 26);
+  Graph.cameraPosition({ z: 620 });
+  let fitted = false;
+  Graph.onEngineStop(() => { if (!fitted) { fitted = true; Graph.zoomToFit(600, 60); } });
 
   window.addEventListener('resize', sizeGraph);
   sizeGraph();
