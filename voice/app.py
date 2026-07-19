@@ -16,7 +16,9 @@ Endpoints:
 
 from __future__ import annotations
 
+import json
 import os
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from dotenv import load_dotenv
@@ -33,6 +35,25 @@ load_dotenv()
 app = Flask(__name__)
 
 MAX_TURNS = 12
+RAW_LOG = "/tmp/voice_payloads.log"
+
+# --- demo caller state (works around web-widget lacking phone/dynamic-var round-trip) ---
+# The dashboard test widget may not fire the init webhook or round-trip our dynamic
+# variables. So we let the demo PIN who the next caller is (POST /demo/set_caller),
+# and remember the last resolved caller so /call/postcall attributes the quote
+# correctly even when dynamic_variables don't come back.
+_PINNED_CALLER: Optional[str] = None
+_LAST_CALLER: Optional[str] = None
+_ANON_SEQ = 0
+
+
+def _raw_log(tag: str, body: dict) -> None:
+    """Append a raw webhook payload for diagnosis (best-effort)."""
+    try:
+        with open(RAW_LOG, "a") as f:
+            f.write(f"\n=== {tag} ===\n{json.dumps(body)[:4000]}\n")
+    except OSError:
+        pass
 
 
 # --- helpers -----------------------------------------------------------------
@@ -91,16 +112,33 @@ def health():
 
 # --- seam A: conversation-initiation webhook ---------------------------------
 
+@app.route("/demo/set_caller", methods=["POST"])
+def set_caller():
+    """Pin who the NEXT call is from (e.g. cust_alpha) — for scripted demos where
+    the web widget carries no phone number. Consumed by the next /call/init."""
+    global _PINNED_CALLER
+    body = request.get_json(force=True, silent=True) or {}
+    _PINNED_CALLER = body.get("customer_id") or None
+    return jsonify({"ok": True, "pinned_caller": _PINNED_CALLER})
+
+
 @app.route("/call/init", methods=["POST"])
 def call_init():
     """Identify the caller, load spec+memory, return the per-call prompt."""
+    global _PINNED_CALLER, _LAST_CALLER, _ANON_SEQ
     body = request.get_json(force=True, silent=True) or {}
+    _raw_log("call/init", body)
     caller = (body.get("caller_id") or body.get("from")
               or (body.get("call") or {}).get("from") or "")
 
-    customer_id = find_customer_by_phone(caller) if caller else None
-    if not customer_id:
-        customer_id = create_customer(caller or "+10000000000")
+    if _PINNED_CALLER:                         # scripted demo: use the pinned caller
+        customer_id, _PINNED_CALLER = _PINNED_CALLER, None
+    elif caller:                               # real phone call: identify by number
+        customer_id = find_customer_by_phone(caller) or create_customer(caller)
+    else:                                      # web widget, no phone: unique caller
+        _ANON_SEQ += 1
+        customer_id = create_customer(f"+1999000{_ANON_SEQ:04d}", name=f"Web Caller {_ANON_SEQ}")
+    _LAST_CALLER = customer_id
 
     spec = load_active_spec()
     ctx = get_context(customer_id)
@@ -178,6 +216,7 @@ def make_offer():
 def post_call():
     """Persist the call + an itemized quote from ElevenLabs' extracted data."""
     body = request.get_json(force=True, silent=True) or {}
+    _raw_log("call/postcall", body)
     data = body.get("data") or body
     conv_id = data.get("conversation_id") or "unknown"
 
@@ -187,11 +226,18 @@ def post_call():
     dc = analysis.get("data_collection_results") or {}
     transcript_turns = data.get("transcript") or []
 
-    # Who was this? Prefer the customer_id we injected at call start.
+    # Who was this? Prefer the customer_id injected at call start; then the phone;
+    # then the last caller; then the pinned caller (the web widget never fires
+    # /call/init, so the pin is the only reliable signal for a scripted demo).
+    global _PINNED_CALLER
     customer_id = dv.get("customer_id")
     if not customer_id:
         phone = (((data.get("metadata") or {}).get("phone_call") or {}).get("external_number"))
-        customer_id = (find_customer_by_phone(phone) if phone else None) or create_customer(phone or "+10000000000")
+        customer_id = (find_customer_by_phone(phone) if phone else None) or _LAST_CALLER
+    if not customer_id and _PINNED_CALLER:
+        customer_id, _PINNED_CALLER = _PINNED_CALLER, None
+    if not customer_id:
+        customer_id = create_customer("+10000000000")
 
     spec = load_active_spec()
     deal = spec.get("deal", {})
@@ -271,6 +317,10 @@ def report():
 
 def _timestamp(data: dict) -> str:
     md = data.get("metadata") or {}
+    for key in ("start_time_unix_secs", "accepted_time_unix_secs", "call_start_time_unix_secs"):
+        v = md.get(key)
+        if isinstance(v, (int, float)) and v > 0:
+            return datetime.fromtimestamp(v, tz=timezone.utc).replace(tzinfo=None).isoformat()
     return str(md.get("start_time") or md.get("call_start_time") or "2026-07-18T00:00:00")
 
 
