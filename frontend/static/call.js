@@ -57,6 +57,63 @@ function addLine(role, text) {
   logBody.scrollTop = logBody.scrollHeight;
 }
 
+// Build connection params: prefer a signed URL + memory/spec overrides from
+// /call/token, so the live call is our tuned agent AND remembers this caller
+// (base prompt + confirmed spec + the customer's memory brief injected). Falls
+// back to the public agent (base prompt, no memory) if the token fetch fails.
+async function buildSession() {
+  const customer = new URLSearchParams(location.search).get('customer') || '';
+  try {
+    const r = await fetch('/call/token' + (customer ? '?customer_id=' + encodeURIComponent(customer) : ''));
+    if (r.ok) {
+      const t = await r.json();
+      if (t && t.memory) renderMemory(t.memory);
+      if (t && t.signed_url) {
+        const ag = (t.overrides && t.overrides.agent) || {};
+        return {
+          signedUrl: t.signed_url,
+          overrides: {
+            agent: {
+              prompt: { prompt: ag.prompt && ag.prompt.prompt },
+              firstMessage: ag.first_message,
+            },
+          },
+          dynamicVariables: t.dynamic_variables || {},
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('[call] /call/token failed — falling back to public agent (no memory)', e);
+  }
+  return { agentId: AGENT };
+}
+
+// Show what the agent pulled from the memory graph before it says a word.
+function renderMemory(m) {
+  var panel = document.getElementById('mempanel');
+  var body = document.getElementById('mem-body');
+  if (!panel || !body) return;
+  function row(label, val, accent) {
+    return '<div style="display:flex;gap:10px;padding:4px 0;">'
+      + '<span style="opacity:.5;min-width:118px;">' + label + '</span>'
+      + '<span style="color:' + (accent || '#EFE8D8') + ';">' + val + '</span></div>';
+  }
+  var tactics = (m.winning_tactics || []).join(', ') || '—';
+  var looks = (m.lookalikes || []).join(', ') || '—';
+  var last = m.past_calls && m.past_calls[0];
+  var html = '';
+  html += row('Customer', (m.name || '—') + '  ·  ' + (m.region || ''));
+  html += row('Style', (m.style || '—').replace(/_/g, ' '));
+  if (m.last_close) html += row('Last close', '$' + m.last_close + ' / unit', '#7FD1A6');
+  html += row('Winning tactics', tactics, '#E7C46B');
+  if (looks !== '—') html += row('Lookalikes', looks);
+  html += row('Floor (hidden)', '$' + m.floor + '  ·  target $' + m.target, '#E79A8C');
+  if (last) html += row('Recent call', '"' + (last.summary || '').slice(0, 80) + '…"');
+  if (m.escalate) html += row('⚑ Flag', 'declining history — ready to escalate', '#E79A8C');
+  body.innerHTML = html;
+  panel.hidden = false;
+}
+
 // --- call lifecycle -----------------------------------------------------------
 async function startCall() {
   if (!AGENT) { setStatus('No agent configured', 'red'); return; }
@@ -67,9 +124,10 @@ async function startCall() {
   setStatus('Connecting…', 'amber');
   hint.textContent = 'Allow microphone access when prompted.';
 
+  const session = await buildSession();
   try {
     convo = await Conversation.startSession({
-      agentId: AGENT,
+      ...session,
       onConnect: () => {
         state = 'live';
         phone.classList.remove('is-connecting');

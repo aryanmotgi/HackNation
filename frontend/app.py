@@ -96,6 +96,12 @@ def graph():
     return render_template("graph.html")
 
 
+@app.route("/report")
+def report_page():
+    # Ranked quotes from live calls (reads /api/report from the voice blueprint).
+    return render_template("report.html")
+
+
 @app.route("/approval")
 def approval():
     # Human-in-the-loop queue — deals the agent escalated for a person to decide.
