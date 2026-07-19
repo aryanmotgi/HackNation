@@ -80,6 +80,7 @@ def run_session(customer_id: str, max_turns: int = MAX_TURNS, quiet: bool = Fals
         print()
 
     lines: list[tuple[str, str]] = []
+    events: list[dict[str, Any]] = []  # structured turn log for the frontend
     closed = escalated = walked = False
     agreed_price: Optional[float] = None
     turns = 0
@@ -90,6 +91,7 @@ def run_session(customer_id: str, max_turns: int = MAX_TURNS, quiet: bool = Fals
         if not quiet:
             _print_agent(t, agent.currency)
         lines.append(("AGENT", t["message"]))
+        events.append(_agent_event(t))
         escalated = True
     else:
         bot = CustomerBot(style, agent.deal["product"], agent.target, agent.currency)
@@ -97,6 +99,7 @@ def run_session(customer_id: str, max_turns: int = MAX_TURNS, quiet: bool = Fals
         opening = bot.reply(None, "Hi, I'm interested in your product. What's your price?",
                             _transcript_str(lines))
         lines.append(("CUSTOMER", opening["message"]))
+        events.append(_customer_event(opening))
         if not quiet:
             _print_customer(opening, label)
         cust_offer, cust_msg = opening["counter_price"], opening["message"]
@@ -105,6 +108,7 @@ def run_session(customer_id: str, max_turns: int = MAX_TURNS, quiet: bool = Fals
             turns += 1
             at = agent.turn(cust_offer, cust_msg, _transcript_str(lines))
             lines.append(("AGENT", at["message"]))
+            events.append(_agent_event(at))
             if not quiet:
                 _print_agent(at, agent.currency)
 
@@ -117,6 +121,7 @@ def run_session(customer_id: str, max_turns: int = MAX_TURNS, quiet: bool = Fals
 
             reply = bot.reply(at["offer_price"], at["message"], _transcript_str(lines))
             lines.append(("CUSTOMER", reply["message"]))
+            events.append(_customer_event(reply))
             if not quiet:
                 _print_customer(reply, label)
 
@@ -150,7 +155,41 @@ def run_session(customer_id: str, max_turns: int = MAX_TURNS, quiet: bool = Fals
         "customer_id": customer_id, "name": ctx["customer"]["name"], "style": style,
         "label": label, "turns": turns, "agreed_price": agreed_price,
         "floor": agent.floor, "target": agent.target, "currency": agent.currency,
-        "guardrail_hits": len(agent.guardrail_notes), **result,
+        "product": agent.deal["product"],
+        "guardrail_hits": len(agent.guardrail_notes),
+        "escalate_flag": ctx["escalate"],
+        "memory": {
+            "style": ctx["customer"]["style"],
+            "region": ctx["customer"]["region"],
+            "risk_flags": ctx["customer"]["risk_flags"],
+            "winning_tactics": ctx["winning_tactics"],
+            "lookalikes": ctx["lookalikes"],
+            "past_calls": ctx["past_calls"],
+        },
+        "summary": summary,
+        "events": events,
+        **result,
+    }
+
+
+def _agent_event(t: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "speaker": "agent",
+        "message": t["message"],
+        "reasoning": t.get("reasoning", ""),
+        "offer_price": t.get("offer_price"),
+        "intent": t.get("intent", "counter"),
+        "guardrails": t.get("guardrails", []),
+    }
+
+
+def _customer_event(r: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "speaker": "customer",
+        "message": r["message"],
+        "counter_price": r.get("counter_price"),
+        "accepted": r.get("accepted", False),
+        "walked": r.get("walked", False),
     }
 
 
