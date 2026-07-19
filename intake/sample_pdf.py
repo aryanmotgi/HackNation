@@ -18,20 +18,26 @@ from reportlab.pdfgen import canvas
 
 DEFAULT_FIELDS = {
     "product": "Cotton T-shirts",
+    "sku": "TS-CTN-180",
     "quantity": "10000 units",
-    "floor_price": "3.20 USD",
+    "opening_price": "4.40 USD",
     "target_price": "4.00 USD",
+    "floor_price": "3.20 USD",
     "currency": "USD",
-    "payment_terms": "Net 30",
+    "lead_time": "25 days",
+    "payment_terms": "30% deposit, 70% before shipment",
 }
 
 # Field label order as printed on the sheet — matches the parser's regex labels.
 _LINES = [
     ("Product", "product"),
-    ("Quantity", "quantity"),
-    ("Floor Price", "floor_price"),
-    ("Target Price", "target_price"),
+    ("SKU", "sku"),
+    ("Minimum Order", "quantity"),
+    ("Opening Price", "opening_price"),
+    ("Target Close", "target_price"),
+    ("Hard Floor", "floor_price"),
     ("Currency", "currency"),
+    ("Lead Time", "lead_time"),
     ("Payment Terms", "payment_terms"),
 ]
 

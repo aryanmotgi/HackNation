@@ -65,7 +65,7 @@ def main() -> None:
     check("floor > target flagged", any("floor" in e for e in validate_spec(bad)))
     zero = build_job_spec(deal={**deal, "quantity": 0}, hard_rules=hr, questions=audit,
                           source="pdf", created_at="2026-07-18T12:00:00")
-    check("quantity 0 flagged", any("Quantity" in e for e in validate_spec(zero)))
+    check("quantity 0 flagged", any("quantity" in e.lower() for e in validate_spec(zero)))
 
     print("\n[intake] save + load; loader refuses drafts")
     path = save_job_spec(spec, jobs_dir="/tmp/_intake_test_jobs")

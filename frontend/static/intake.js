@@ -1,187 +1,409 @@
-/* Intake wizard — multi-step: input → PDF parse → hard-rule questions → confirm → save.
-   PDF path is fully wired; voice is stubbed. Talks to /api/intake/*. */
+/* ============================================================================
+   Forge intake wizard — vanilla JS, no frameworks.
+   5 steps, PDF parse (POST /api/intake/parse), preview + save
+   (POST /api/intake/confirm). All wizard state lives in `state`.
+   ========================================================================== */
 
-const state = { draft: null, questions: [], answers: {}, source: "pdf" };
+(function () {
+  "use strict";
 
-// ── step navigation ──────────────────────────────────────────────────────────
-function gotoStep(n) {
-  document.querySelectorAll(".step").forEach(s =>
-    s.classList.toggle("active", +s.dataset.step === n));
-  document.querySelectorAll(".stepper__node").forEach(node => {
-    const s = +node.dataset.step;
-    node.classList.toggle("stepper__node--active", s === n);
-    node.classList.toggle("stepper__node--done", s < n);
-  });
-  if (n === 4) doPreview(true);
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-// ── mode tag ─────────────────────────────────────────────────────────────────
-async function setModeTag() {
-  try {
-    const s = await fetch("/api/sessions").then(r => r.json());
-    const tag = document.getElementById("mode-tag");
-    if (s.model_mode === "live") tag.innerHTML = `<span class="mode-tag__dot"></span> LIVE · ${s.model}`;
-    else { tag.className = "mode-tag mode-tag--mock"; tag.innerHTML = `<span class="mode-tag__dot"></span> MOCK`; }
-  } catch (e) { /* non-fatal */ }
-}
-
-// ── step 2: file + parse ─────────────────────────────────────────────────────
-function wireUpload() {
-  const dz = document.getElementById("dropzone");
-  const input = document.getElementById("pdf-input");
-  const parseBtn = document.getElementById("parse-btn");
-  let file = null;
-
-  const setFile = (f) => {
-    file = f;
-    document.getElementById("filename").textContent = f ? `Selected: ${f.name}` : "";
-    parseBtn.disabled = !f;
+  // ── Wizard state ─────────────────────────────────────────────────────
+  var state = {
+    step: 1,
+    completed: {},          // { stepNum: true } once visited/advanced past
+    voice_style: "warm_professional",
+    currency: "USD",        // carried from draft.currency
+    payment_terms: "",      // carried from draft.payment_terms
+    questions: [],          // carried from parse response
+    parsed: false,
   };
-  dz.addEventListener("click", () => input.click());
-  input.addEventListener("change", () => setFile(input.files[0]));
-  dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("dropzone--over"); });
-  dz.addEventListener("dragleave", () => dz.classList.remove("dropzone--over"));
-  dz.addEventListener("drop", e => {
-    e.preventDefault(); dz.classList.remove("dropzone--over");
-    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
-  });
 
-  parseBtn.addEventListener("click", async () => {
-    if (!file) return;
-    parseBtn.disabled = true; parseBtn.textContent = "Parsing…";
-    const fd = new FormData(); fd.append("pdf", file);
-    const res = await fetch("/api/intake/parse", { method: "POST", body: fd });
-    const data = await res.json();
-    parseBtn.textContent = "Parse PDF →"; parseBtn.disabled = false;
-    const errBox = document.getElementById("parse-error");
-    if (!res.ok) { errBox.innerHTML = alertHtml("error", "Parse failed", [data.error]); return; }
-    errBox.innerHTML = "";
-    state.draft = data.draft; state.questions = data.questions; state.answers = {};
-    renderQuestions();
-    gotoStep(3);
-  });
-}
+  var TOTAL = 5;
 
-// ── step 3: questions ────────────────────────────────────────────────────────
-function renderQuestions() {
-  const found = (state.draft._found || []).join(", ") || "nothing";
-  const sum = document.getElementById("parse-summary");
-  sum.style.display = "block";
-  sum.innerHTML = `<span class="alert__title">Parsed from PDF:</span> ${found}. ` +
-    `Answer the remaining hard-rule questions below.`;
-
-  const wrap = document.getElementById("questions");
-  wrap.innerHTML = state.questions.map(q => {
-    const voice = `<button class="btn btn--ghost qcard__voice" data-voice="${q.id}" ` +
-      `title="Voice answer coming soon" disabled>🎙️ voice</button>`;
-    let control;
-    if (q.type === "number")
-      control = `<input class="input input--num" data-qid="${q.id}" type="number" step="0.01" placeholder="e.g. 3.20">`;
-    else if (q.type === "list")
-      control = `<input class="input" data-qid="${q.id}" placeholder="comma-separated">`;
-    else
-      control = `<input class="input" data-qid="${q.id}" placeholder="type your answer">`;
-    return `<div class="qcard">${voice}<div class="qcard__prompt">${q.prompt}</div>${control}</div>`;
-  }).join("") || `<div class="alert alert--ok">PDF covered everything — no extra questions.</div>`;
-}
-
-function collectAnswers() {
-  const a = {};
-  document.querySelectorAll("#questions [data-qid]").forEach(el => { a[el.dataset.qid] = el.value; });
-  state.answers = a;
-}
-
-// ── step 4: confirm ──────────────────────────────────────────────────────────
-async function doPreview(prefill) {
-  const body = {
-    draft: state.draft, answers: state.answers, source: state.source,
-    confirm: false, deal_edits: prefill ? {} : readDealEdits(),
-  };
-  const res = await fetch("/api/intake/confirm", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  const spec = data.spec;
-  if (prefill) fillDealInputs(spec.deal);
-  renderHardRules(spec.hard_rules);
-  document.getElementById("confirm-errors").innerHTML =
-    (data.errors && data.errors.length)
-      ? alertHtml("error", "Fix these before saving", data.errors) : "";
-  return data;
-}
-
-function fillDealInputs(deal) {
-  for (const k of ["product", "quantity", "floor_price", "target_price", "currency", "payment_terms"]) {
-    const el = document.getElementById("e-" + k);
-    if (el) el.value = deal[k] == null ? "" : deal[k];
+  // ── Tiny DOM helpers ─────────────────────────────────────────────────
+  function $(id) { return document.getElementById(id); }
+  function val(id) { var el = $(id); return el ? el.value.trim() : ""; }
+  function setVal(id, v) { var el = $(id); if (el && v !== null && v !== undefined) el.value = v; }
+  function num(id) {
+    var raw = val(id);
+    if (raw === "") return null;
+    var n = Number(raw);
+    return isNaN(n) ? null : n;
   }
-}
-function readDealEdits() {
-  const d = {};
-  for (const k of ["product", "quantity", "floor_price", "target_price", "currency", "payment_terms"]) {
-    const el = document.getElementById("e-" + k);
-    if (el && el.value !== "") d[k] = (k === "quantity") ? parseInt(el.value, 10)
-      : (k === "floor_price" || k === "target_price") ? parseFloat(el.value) : el.value;
+  function splitList(id) {
+    return val(id).split(",").map(function (s) { return s.trim(); }).filter(Boolean);
   }
-  return d;
-}
-function renderHardRules(hr) {
-  const rows = [
-    ["Floor (enforced)", hr.floor_price],
-    ["Forbidden terms", (hr.forbidden_terms || []).join(", ") || "—"],
-    ["Walk-away price", hr.walk_away_price == null ? "—" : hr.walk_away_price],
-    ["Escalation trigger", hr.escalation_trigger || "—"],
-    ["Always propose next step", hr.always_propose_next_step ? "yes" : "no"],
-  ];
-  document.getElementById("hardrules-preview").innerHTML = rows.map(
-    ([k, v]) => `<div class="memrow"><span class="memrow__k">${k}</span><span class="memrow__v">${v}</span></div>`
-  ).join("");
-}
 
-async function doConfirm() {
-  // re-preview with edits so hard rules reflect edited floor, then save if clean
-  await doPreview(false);
-  const body = {
-    draft: state.draft, answers: state.answers, source: state.source,
-    confirm: true, deal_edits: readDealEdits(),
-  };
-  const res = await fetch("/api/intake/confirm", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok || !data.ok) {
-    document.getElementById("confirm-errors").innerHTML =
-      alertHtml("error", "Fix these before saving", data.errors || ["Save failed."]);
-    return;
+  // ── Navigation ───────────────────────────────────────────────────────
+  function showStep(n) {
+    n = Math.max(1, Math.min(TOTAL, n));
+    state.step = n;
+
+    var steps = document.querySelectorAll(".fg-step");
+    steps.forEach(function (s) {
+      s.classList.toggle("active", Number(s.getAttribute("data-step")) === n);
+    });
+
+    updateChecklist();
+    updateProgress();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (n === 3) refreshLockedBanner();
+    if (n === 5) previewSpec();      // surface validation early
   }
-  document.getElementById("saved-path").textContent = "Saved to " + data.path;
-  document.getElementById("saved-id").textContent = data.job_id;
-  document.getElementById("final-json").textContent = JSON.stringify(data.spec, null, 2);
-  gotoStep(5);
-}
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-function alertHtml(kind, title, items) {
-  return `<div class="alert alert--${kind}"><span class="alert__title">${title}</span>` +
-    `<ul>${items.map(i => `<li>${i}</li>`).join("")}</ul></div>`;
-}
-function reset() {
-  state.draft = null; state.questions = []; state.answers = {};
-  document.getElementById("pdf-input").value = "";
-  document.getElementById("filename").textContent = "";
-  document.getElementById("parse-btn").disabled = true;
-  gotoStep(1);
-}
+  function gotoStep(n) {
+    // mark every step before the target as completed (visited)
+    for (var i = 1; i < n; i++) state.completed[i] = true;
+    state.completed[state.step] = true;
+    showStep(n);
+  }
 
-// ── wire up ──────────────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  setModeTag();
-  wireUpload();
-  document.getElementById("choose-pdf").addEventListener("click", () => gotoStep(2));
-  document.querySelectorAll("[data-back]").forEach(b =>
-    b.addEventListener("click", () => gotoStep(+b.dataset.back)));
-  document.getElementById("review-btn").addEventListener("click", () => { collectAnswers(); gotoStep(4); });
-  document.getElementById("confirm-btn").addEventListener("click", doConfirm);
-  document.getElementById("new-job").addEventListener("click", reset);
-});
+  function updateChecklist() {
+    var items = document.querySelectorAll(".fg-check-item");
+    items.forEach(function (it) {
+      var s = Number(it.getAttribute("data-step"));
+      it.classList.remove("active", "done");
+      var numEl = it.querySelector(".fg-check-num");
+      if (s === state.step) {
+        it.classList.add("active");
+        numEl.textContent = s;
+      } else if (state.completed[s]) {
+        it.classList.add("done");
+        numEl.textContent = "✓";
+      } else {
+        numEl.textContent = s;
+      }
+    });
+  }
+
+  function updateProgress() {
+    // count completed sections (visited/advanced past)
+    var done = 0;
+    for (var i = 1; i <= TOTAL; i++) if (state.completed[i]) done++;
+    $("prog-count").textContent = done;
+    $("prog-fill").style.width = (done / TOTAL * 100) + "%";
+  }
+
+  // ── Step 3: live locked-rule banner ──────────────────────────────────
+  function refreshLockedBanner() {
+    var floor = num("deal_floor_price");
+    var shown = (floor === null) ? "0" : floor;
+    $("locked-text").innerHTML =
+      "Never quote below <b>$" + shown + "</b> per unit. Only an authorized human can override this.";
+  }
+
+  // ── Step 2: PDF upload / parse ───────────────────────────────────────
+  function setUploadStatus(kind, fname, msg, showReplace) {
+    var box = $("upload-status");
+    box.classList.remove("err");
+    box.classList.add("show");
+    if (kind === "err") box.classList.add("err");
+    var icon = $("upload-status-icon");
+    if (kind === "loading") icon.innerHTML = '<span class="fg-spinner"></span>';
+    else if (kind === "err") icon.textContent = "⚠";
+    else icon.textContent = "✓";
+    $("upload-fname").textContent = fname || "";
+    $("upload-msg").textContent = msg || "";
+    $("upload-replace").style.display = showReplace ? "" : "none";
+  }
+
+  function fillDraft(draft) {
+    if (!draft) return;
+    setVal("deal_product", draft.product);
+    setVal("deal_sku", draft.sku);
+    setVal("deal_quantity", draft.quantity);
+    setVal("deal_opening_price", draft.opening_price);
+    setVal("deal_target_price", draft.target_price);
+    setVal("deal_floor_price", draft.floor_price);
+    setVal("deal_lead_time_days", draft.lead_time_days);
+    // carry-over for later steps
+    if (draft.currency) state.currency = draft.currency;
+    if (draft.payment_terms) {
+      state.payment_terms = draft.payment_terms;
+      setVal("hr_payment_terms", draft.payment_terms);
+    }
+    // seed require-approval-below from the floor if empty
+    if (val("hr_require_approval_below") === "" && draft.floor_price != null) {
+      setVal("hr_require_approval_below", draft.floor_price);
+    }
+    refreshLockedBanner();
+    state.parsed = true;
+  }
+
+  function parsePdf(file) {
+    setUploadStatus("loading", file.name, "— extracting…", false);
+    var fd = new FormData();
+    fd.append("pdf", file, file.name || "price_sheet.pdf");
+    fetch("/api/intake/parse", { method: "POST", body: fd })
+      .then(function (r) {
+        return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+      })
+      .then(function (res) {
+        if (!res.ok) {
+          setUploadStatus("err", file.name, "— " + (res.data.error || "could not parse"), true);
+          return;
+        }
+        state.questions = res.data.questions || [];
+        fillDraft(res.data.draft);
+        var found = (res.data.draft && res.data.draft._found) || [];
+        var n = found.length;
+        setUploadStatus("ok", file.name,
+          "— extracted " + (n ? n + " field" + (n === 1 ? "" : "s") : "the details") + ". Review below.",
+          true);
+      })
+      .catch(function (e) {
+        setUploadStatus("err", file.name, "— " + e.message, true);
+      });
+  }
+
+  function wireUpload() {
+    var zone = $("upload-zone");
+    var input = $("pdf-input");
+
+    zone.addEventListener("click", function (e) {
+      if (e.target && e.target.id === "use-sample") return;
+      input.click();
+    });
+    input.addEventListener("change", function () {
+      if (input.files && input.files[0]) parsePdf(input.files[0]);
+    });
+
+    // drag & drop
+    ["dragenter", "dragover"].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add("drag"); });
+    });
+    ["dragleave", "drop"].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove("drag"); });
+    });
+    zone.addEventListener("drop", function (e) {
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) parsePdf(f);
+    });
+
+    // "use sample PDF" — fetch from /static and submit it
+    $("use-sample").addEventListener("click", function (e) {
+      e.stopPropagation();
+      setUploadStatus("loading", "price_sheet_sample.pdf", "— loading sample…", false);
+      fetch("/static/price_sheet_sample.pdf")
+        .then(function (r) {
+          if (!r.ok) throw new Error("sample not found (" + r.status + ")");
+          return r.blob();
+        })
+        .then(function (blob) {
+          var file = new File([blob], "price_sheet_sample.pdf", { type: "application/pdf" });
+          parsePdf(file);
+        })
+        .catch(function (err) {
+          setUploadStatus("err", "price_sheet_sample.pdf", "— " + err.message, false);
+        });
+    });
+
+    $("upload-replace").addEventListener("click", function () {
+      input.value = "";
+      input.click();
+    });
+  }
+
+  // ── Voice cards ──────────────────────────────────────────────────────
+  function wireVoiceCards() {
+    var cards = document.querySelectorAll(".fg-voice-card");
+    cards.forEach(function (c) {
+      c.addEventListener("click", function () {
+        cards.forEach(function (x) { x.classList.remove("sel"); });
+        c.classList.add("sel");
+        state.voice_style = c.getAttribute("data-voice");
+      });
+    });
+  }
+
+  // ── Build confirm payload from state ─────────────────────────────────
+  function collectTriggers() {
+    var keys = [
+      "price_below_floor",
+      "unsupported_customization",
+      "angry_or_manager",
+      "order_exceeds_transfer_limit",
+    ];
+    var out = [];
+    keys.forEach(function (k) {
+      var el = $("trig_" + k);
+      if (el && el.checked) out.push(k);
+    });
+    return out;
+  }
+
+  function buildPayload(confirm) {
+    // deal numbers
+    var deal = {
+      product: val("deal_product"),
+      sku: val("deal_sku"),
+      quantity: num("deal_quantity"),
+      unit: "units",
+      opening_price: num("deal_opening_price"),
+      target_price: num("deal_target_price"),
+      floor_price: num("deal_floor_price"),
+      currency: state.currency || "USD",
+      volume_tiers: [],
+      lead_time_days: num("deal_lead_time_days"),
+      payment_terms: val("hr_payment_terms") || state.payment_terms || "",
+      shipping_terms: val("hr_shipping_terms"),
+    };
+    var vqty = num("deal_volume_qty");
+    var vprice = num("deal_volume_price");
+    if (vqty !== null && vprice !== null) {
+      deal.volume_tiers = [{ tier_qty: vqty, price: vprice }];
+    }
+
+    var payload = {
+      company: {
+        name: val("company_name"),
+        website: val("company_website"),
+        location: val("company_location"),
+        timezone: val("company_timezone"),
+        languages: splitList("company_languages"),
+        sales_hours: val("company_sales_hours"),
+      },
+      deal: deal,
+      hard_rules: {
+        forbidden_terms: splitList("hr_forbidden_terms"),
+        walk_away_price: null,
+        require_approval_below: num("hr_require_approval_below"),
+        transfer_deals_above: num("hr_transfer_deals_above"),
+        escalation_triggers: collectTriggers(),
+        always_propose_next_step: true,
+      },
+      voice: {
+        agent_name: val("voice_agent_name"),
+        phone: val("voice_phone"),
+        voice_style: state.voice_style,
+        conversation_style: val("voice_conversation_style"),
+        elevenlabs_agent_id: null,
+      },
+      questions: state.questions,
+      source: "pdf",
+      confirm: !!confirm,
+    };
+    return payload;
+  }
+
+  // ── Confirm errors banner ────────────────────────────────────────────
+  function showErrors(errors) {
+    var box = $("confirm-errors");
+    var list = $("confirm-errors-list");
+    list.innerHTML = "";
+    if (!errors || !errors.length) {
+      box.classList.remove("show");
+      return;
+    }
+    errors.forEach(function (e) {
+      var li = document.createElement("li");
+      li.textContent = e;
+      list.appendChild(li);
+    });
+    box.classList.add("show");
+  }
+
+  // ── Step 5: preview (confirm:false) ──────────────────────────────────
+  function previewSpec() {
+    fetch("/api/intake/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildPayload(false)),
+    })
+      .then(function (r) { return r.json().then(function (d) { return d; }); })
+      .then(function (data) { showErrors(data.errors); })
+      .catch(function () { /* preview is best-effort */ });
+  }
+
+  // ── Step 5: save (confirm:true) ──────────────────────────────────────
+  function launch() {
+    var btn = $("launch");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    fetch("/api/intake/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildPayload(true)),
+    })
+      .then(function (r) {
+        return r.json().then(function (d) { return { status: r.status, data: d }; });
+      })
+      .then(function (res) {
+        btn.disabled = false;
+        btn.textContent = "Save & launch agent";
+        if (res.status === 422 || res.data.ok === false) {
+          showErrors(res.data.errors && res.data.errors.length ? res.data.errors : ["Could not save. Please review your entries."]);
+          $("success-panel").classList.remove("show");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+        // success
+        showErrors([]);
+        var panel = $("success-panel");
+        $("success-path").textContent = res.data.path ? "Saved to " + res.data.path : "Saved";
+        $("success-json").textContent = JSON.stringify(res.data.spec, null, 2);
+        panel.classList.add("show");
+        btn.textContent = "Launched ✓";
+        state.completed[5] = true;
+        updateProgress();
+        updateChecklist();
+        panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      })
+      .catch(function (e) {
+        btn.disabled = false;
+        btn.textContent = "Save & launch agent";
+        showErrors(["Network error: " + e.message]);
+      });
+  }
+
+  // ── Wire everything ──────────────────────────────────────────────────
+  function init() {
+    // Back / Next buttons
+    document.querySelectorAll("[data-next]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        gotoStep(Number(b.getAttribute("data-next")));
+      });
+    });
+
+    // Checklist navigation
+    document.querySelectorAll(".fg-check-item").forEach(function (it) {
+      it.addEventListener("click", function () {
+        gotoStep(Number(it.getAttribute("data-step")));
+      });
+    });
+
+    wireUpload();
+    wireVoiceCards();
+
+    // Live locked banner + approval seed as floor changes
+    var floorEl = $("deal_floor_price");
+    if (floorEl) {
+      floorEl.addEventListener("input", function () {
+        refreshLockedBanner();
+        if (val("hr_require_approval_below") === "") {
+          setVal("hr_require_approval_below", val("deal_floor_price"));
+        }
+      });
+    }
+
+    // Step 5 actions
+    $("run-test").addEventListener("click", function () {
+      window.open("/messaging", "_blank");
+    });
+    $("launch").addEventListener("click", launch);
+
+    // Start
+    showStep(1);
+    state.completed[1] = true;
+    updateChecklist();
+    updateProgress();
+    refreshLockedBanner();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();

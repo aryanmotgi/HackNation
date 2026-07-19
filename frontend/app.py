@@ -18,7 +18,7 @@ from flask import Flask, jsonify, render_template, request
 from negotiation.arena import run_session
 from negotiation.llm import MODEL, using_live_model
 from intake.pdf_parse import parse_price_sheet
-from intake.questions import questions_for, apply_answers
+from intake.questions import questions_for
 from intake.job_spec import build_job_spec, validate_spec, save_job_spec
 
 # Shown on the dashboard in this order; Delta is the hidden lookalike made visible.
@@ -122,28 +122,34 @@ def api_intake_parse():
 
 @app.route("/api/intake/confirm", methods=["POST"])
 def api_intake_confirm():
-    """Step 4/5: build + validate the spec. Save only if valid AND confirm=True.
+    """Build + validate the v2 job spec. Save only if valid AND confirm=True.
 
-    Body: {draft, answers, confirm: bool}. When confirm is false this is a preview —
-    returns the assembled spec + validation errors without saving. When confirm is
-    true and there are no errors, saves a status='confirmed' job spec to jobs/.
+    Body: {company, deal, hard_rules, voice, source, confirm}. confirm=false is a
+    preview (assembles spec + returns validation errors, no save). confirm=true with
+    no errors saves a status='confirmed' spec to jobs/. Wizard-required fields
+    (company name/location) are enforced only when confirm=true.
     """
     body = request.get_json(force=True) or {}
-    draft = body.get("draft", {})
-    answers = body.get("answers", {})
     confirm = bool(body.get("confirm", False))
 
-    # Merge any edited deal fields from the confirm screen over the parsed draft.
-    edited = body.get("deal_edits") or {}
-    merged_draft = {**draft, **{k: v for k, v in edited.items() if v not in (None, "")}}
-
-    deal, hard_rules, audit = apply_answers(merged_draft, answers)
     spec = build_job_spec(
-        deal=deal, hard_rules=hard_rules, questions=audit, source=body.get("source", "pdf"),
+        company=body.get("company") or {},
+        deal=body.get("deal") or {},
+        hard_rules=body.get("hard_rules") or {},
+        voice=body.get("voice") or {},
+        questions=body.get("questions") or [],
+        source=body.get("source", "pdf"),
         created_at=datetime.now().isoformat(timespec="seconds"),
         status="confirmed" if confirm else "draft",
     )
+
     errors = validate_spec(spec)
+    if confirm:  # wizard-level required fields (not needed for a bare negotiation spec)
+        if not (spec["company"]["name"] or "").strip():
+            errors.append("Company name is required.")
+        if not (spec["company"]["location"] or "").strip():
+            errors.append("Factory location is required.")
+
     if errors:
         return jsonify({"ok": False, "errors": errors, "spec": spec}), 422
     if not confirm:

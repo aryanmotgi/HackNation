@@ -25,10 +25,13 @@ import pdfplumber
 # Field label -> regex capturing the value. Case-insensitive, tolerant of spacing.
 _PATTERNS = {
     "product":       re.compile(r"Product\s*:\s*(.+)", re.I),
-    "quantity_line": re.compile(r"Quantity\s*:\s*([\d,]+)\s*([A-Za-z]+)?", re.I),
-    "floor_price":   re.compile(r"Floor\s*Price\s*:\s*([\d.]+)", re.I),
-    "target_price":  re.compile(r"Target\s*Price\s*:\s*([\d.]+)", re.I),
+    "sku":           re.compile(r"SKU\s*:\s*(\S+)", re.I),
+    "quantity_line": re.compile(r"(?:Minimum\s*Order|Quantity)\s*:\s*([\d,]+)\s*([A-Za-z]+)?", re.I),
+    "opening_price": re.compile(r"Opening\s*Price\s*:\s*([\d.]+)", re.I),
+    "floor_price":   re.compile(r"(?:Hard\s*Floor|Floor\s*Price)\s*:\s*([\d.]+)", re.I),
+    "target_price":  re.compile(r"(?:Target\s*(?:Close|Price))\s*:\s*([\d.]+)", re.I),
     "currency":      re.compile(r"Currency\s*:\s*([A-Za-z]{3})", re.I),
+    "lead_time":     re.compile(r"Lead\s*Time\s*:\s*(\d+)", re.I),
     "payment_terms": re.compile(r"Payment\s*Terms\s*:\s*(.+)", re.I),
 }
 
@@ -55,26 +58,32 @@ def parse_price_sheet(source: Union[str, bytes]) -> dict[str, Any]:
     """
     text = _extract_text(source)
     draft: dict[str, Any] = {
-        "product": None, "quantity": None, "unit": "units",
-        "floor_price": None, "target_price": None, "currency": None,
-        "payment_terms": None,
+        "product": None, "sku": None, "quantity": None, "unit": "units",
+        "opening_price": None, "floor_price": None, "target_price": None,
+        "currency": None, "lead_time_days": None, "payment_terms": None,
     }
     found: list[str] = []
 
     if m := _PATTERNS["product"].search(text):
         draft["product"] = m.group(1).strip(); found.append("product")
+    if m := _PATTERNS["sku"].search(text):
+        draft["sku"] = m.group(1).strip(); found.append("sku")
     if m := _PATTERNS["quantity_line"].search(text):
         q = _num(m.group(1))
         if q is not None:
             draft["quantity"] = int(q); found.append("quantity")
         if m.group(2):
             draft["unit"] = m.group(2).strip().lower()
+    if m := _PATTERNS["opening_price"].search(text):
+        draft["opening_price"] = _num(m.group(1)); found.append("opening_price")
     if m := _PATTERNS["floor_price"].search(text):
         draft["floor_price"] = _num(m.group(1)); found.append("floor_price")
     if m := _PATTERNS["target_price"].search(text):
         draft["target_price"] = _num(m.group(1)); found.append("target_price")
     if m := _PATTERNS["currency"].search(text):
         draft["currency"] = m.group(1).upper(); found.append("currency")
+    if m := _PATTERNS["lead_time"].search(text):
+        draft["lead_time_days"] = int(_num(m.group(1))); found.append("lead_time_days")
     if m := _PATTERNS["payment_terms"].search(text):
         draft["payment_terms"] = m.group(1).strip(); found.append("payment_terms")
 
