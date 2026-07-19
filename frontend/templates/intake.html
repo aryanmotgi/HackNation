@@ -33,7 +33,7 @@
       </div>
       <aside class="fg-progress">
         <div class="fg-progress-label">Setup progress</div>
-        <div class="fg-progress-count"><b id="prog-count">0</b>/5 setup sections ready</div>
+        <div class="fg-progress-count"><b id="prog-count">0</b>/3 setup sections ready</div>
         <div class="fg-bar"><div class="fg-bar-fill" id="prog-fill"></div></div>
         <div class="fg-progress-note">About 2 minutes left</div>
       </aside>
@@ -56,15 +56,7 @@
         </button>
         <button class="fg-check-item" data-step="3" type="button">
           <span class="fg-check-num">3</span>
-          <span><span class="fg-check-title">Guardrails</span><span class="fg-check-sub">The limits</span></span>
-        </button>
-        <button class="fg-check-item" data-step="4" type="button">
-          <span class="fg-check-num">4</span>
-          <span><span class="fg-check-title">Voice</span><span class="fg-check-sub">How it sounds</span></span>
-        </button>
-        <button class="fg-check-item" data-step="5" type="button">
-          <span class="fg-check-num">5</span>
-          <span><span class="fg-check-title">Test call</span><span class="fg-check-sub">Rehearse &amp; launch</span></span>
+          <span><span class="fg-check-title">Guardrails</span><span class="fg-check-sub">The limits &amp; launch</span></span>
         </button>
 
         <div class="fg-privacy">
@@ -252,112 +244,20 @@
             </label>
           </div>
 
-          <div class="fg-nav">
-            <button class="btn btn-ghost" type="button" data-next="2">Back</button>
-            <button class="btn btn-primary" type="button" data-next="4">Next: Voice</button>
-          </div>
-        </section>
-
-        <!-- ── Step 4: Voice ───────────────────────────────────────── -->
-        <section class="fg-step" data-step="4">
-          <div class="fg-step-head">
-            <div class="fg-step-badge">04</div>
-            <div>
-              <h2 class="fg-step-title">Give your agent a voice</h2>
-              <p class="fg-step-sub">Voice · How it sounds on the call</p>
-            </div>
-          </div>
-
-          <div class="fg-row">
-            <div class="fg-field">
-              <label class="fg-label" for="voice_agent_name">Agent name <span class="fg-req">Required</span></label>
-              <input class="fg-input" id="voice_agent_name" type="text" value="Alex" />
-            </div>
-            <div class="fg-field">
-              <label class="fg-label" for="voice_phone">Phone number</label>
-              <input class="fg-input" id="voice_phone" type="text" value="+1 (415) 555-0142" />
-            </div>
-          </div>
-
-          <div class="fg-group-label">Voice style</div>
-          <div class="fg-voice-cards" id="voice-cards">
-            <div class="fg-voice-card sel" data-voice="warm_professional">
-              <div class="vc-icon">◍</div>
-              <div class="fg-voice-name">Warm professional</div>
-              <div class="fg-voice-desc">Friendly, trustworthy, unhurried.</div>
-            </div>
-            <div class="fg-voice-card" data-voice="direct_efficient">
-              <div class="vc-icon">➜</div>
-              <div class="fg-voice-name">Direct &amp; efficient</div>
-              <div class="fg-voice-desc">Gets to the number quickly.</div>
-            </div>
-            <div class="fg-voice-card" data-voice="calm_consultative">
-              <div class="vc-icon">☯</div>
-              <div class="fg-voice-name">Calm consultative</div>
-              <div class="fg-voice-desc">Patient, advisory, listens first.</div>
-            </div>
-          </div>
-
-          <div class="fg-field full" style="margin-top:16px">
-            <label class="fg-label" for="voice_conversation_style">Conversation style</label>
-            <textarea class="fg-textarea" id="voice_conversation_style">Confident, concise, never pushy</textarea>
-          </div>
-
-          <div class="fg-eleven">
-            <div class="fg-eleven-badge">11</div>
-            <div class="fg-eleven-body">
-              <div class="fg-eleven-title">ElevenLabs connection</div>
-              <div class="fg-eleven-sub">For the hackathon demo, Aryan connects the Sales Agent ID on the server. Ready for Agent ID. Never paste an API key into this page.</div>
-            </div>
-            <div class="fg-eleven-tag">Ready for Agent ID</div>
-          </div>
-
-          <div class="fg-nav">
-            <button class="btn btn-ghost" type="button" data-next="3">Back</button>
-            <button class="btn btn-primary" type="button" data-next="5">Next: Test call</button>
-          </div>
-        </section>
-
-        <!-- ── Step 5: Test call ───────────────────────────────────── -->
-        <section class="fg-step" data-step="5">
-          <div class="fg-step-head">
-            <div class="fg-step-badge">05</div>
-            <div>
-              <h2 class="fg-step-title">Rehearse &amp; launch</h2>
-              <p class="fg-step-sub">Test call · Run a negotiation, then go live</p>
-            </div>
-          </div>
-
           <div class="fg-errors" id="confirm-errors">
             <h4>Please fix the following before launching</h4>
             <ul id="confirm-errors-list"></ul>
           </div>
 
-          <div class="fg-test-card">
-            <div class="tc-body">
-              <div class="tc-title">Run a test negotiation</div>
-              <div class="tc-sub">Watch your agent hold the floor against a live buyer in the messaging arena.</div>
-            </div>
-            <button class="btn btn-lime" type="button" id="run-test">Run test negotiation ↗</button>
-          </div>
-
-          <div class="fg-test-card">
-            <div class="tc-body">
-              <div class="tc-title">Launch your agent</div>
-              <div class="tc-sub">Saves the job spec and puts your guardrails into force.</div>
-            </div>
-            <button class="btn btn-primary" type="button" id="launch">Save &amp; launch agent</button>
-          </div>
-
           <div class="fg-success" id="success-panel">
-            <h3>Job spec saved ✓</h3>
+            <h3>Job spec saved ✓ — agent is live</h3>
             <span class="path" id="success-path"></span>
             <pre id="success-json"></pre>
           </div>
 
           <div class="fg-nav">
-            <button class="btn btn-ghost" type="button" data-next="4">Back</button>
-            <span></span>
+            <button class="btn btn-ghost" type="button" data-next="2">Back</button>
+            <button class="btn btn-primary" type="button" id="launch">Save &amp; launch agent</button>
           </div>
         </section>
 

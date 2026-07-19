@@ -18,7 +18,7 @@
     parsed: false,
   };
 
-  var TOTAL = 5;
+  var TOTAL = 3;
 
   // ── Tiny DOM helpers ─────────────────────────────────────────────────
   function $(id) { return document.getElementById(id); }
@@ -48,8 +48,7 @@
     updateProgress();
     window.scrollTo({ top: 0, behavior: "smooth" });
 
-    if (n === 3) refreshLockedBanner();
-    if (n === 5) previewSpec();      // surface validation early
+    if (n === 3) { refreshLockedBanner(); previewSpec(); }  // Guardrails = final step
   }
 
   function gotoStep(n) {
@@ -345,7 +344,7 @@
         $("success-json").textContent = JSON.stringify(res.data.spec, null, 2);
         panel.classList.add("show");
         btn.textContent = "Launched ✓";
-        state.completed[5] = true;
+        state.completed[3] = true;
         updateProgress();
         updateChecklist();
         panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -387,10 +386,7 @@
       });
     }
 
-    // Step 5 actions
-    $("run-test").addEventListener("click", function () {
-      window.open("/messaging", "_blank");
-    });
+    // Launch (final step)
     $("launch").addEventListener("click", launch);
 
     // Start
