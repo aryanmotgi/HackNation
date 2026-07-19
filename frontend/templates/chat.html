@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat · Loomhaus Sales Desk</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/chat.css">
+  <script src="/static/chat.js" defer></script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__brand"><span class="nav__mark"></span> Loomhaus · Sales Desk</div>
+    <div class="nav__links">
+      <a class="nav__link" href="/dashboard">Dashboard</a>
+      <a class="nav__link" href="/messaging">Messaging</a>
+      <a class="nav__link nav__link--active" href="/chat">Chat</a>
+      <a class="nav__link" href="/graph">Graph</a>
+    </div>
+    <div class="nav__spacer"></div>
+    <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
+  </nav>
+
+  <main class="page">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">MEMORY Q&amp;A</p>
+        <h1 class="h1">Ask your sales agent</h1>
+        <p class="sub">Query negotiation memory — tactics, call history, customer profiles, lookalike patterns.</p>
+      </div>
+      <div class="chat-controls">
+        <label class="chat-label" for="customer-select">Customer</label>
+        <select class="chat-select" id="customer-select">
+          <option value="">All customers</option>
+          <option value="cust_alpha">Alpha Textiles</option>
+          <option value="cust_bravo">Bravo Imports</option>
+          <option value="cust_charlie">Charlie Retail</option>
+          <option value="cust_delta">Delta Fashion</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="chat-wrap">
+      <div class="chat-thread" id="chat-thread"></div>
+      <div class="chat-bar">
+        <textarea class="chat-input" id="chat-input" rows="1"
+          placeholder="Ask about a customer, tactic, deal…"></textarea>
+        <button class="btn" id="chat-send" type="button">Send</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

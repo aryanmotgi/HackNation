@@ -20,6 +20,11 @@ const SIZE = { Manufacturer: 10, Customer: 7, Deal: 4.5, Call: 3.5, Pattern: 4.5
 
 let Graph = null;
 
+function showError(msg) {
+  const el = document.getElementById('cy');
+  el.innerHTML = '<p class="eyebrow" style="padding:40px 24px">' + msg + '</p>';
+}
+
 function colorFor(n) {
   if (n.type === 'Customer' && n.escalate) return RED;
   return TYPE_COLOR[n.type] || '#8B94A3';
@@ -27,8 +32,14 @@ function colorFor(n) {
 
 async function load() {
   await setModeTag();
-  const data = await fetch('/api/graph').then(r => r.json());
-  render(data);
+  try {
+    const r = await fetch('/api/graph');
+    if (!r.ok) throw new Error('server error ' + r.status);
+    const data = await r.json();
+    render(data);
+  } catch (e) {
+    showError('Could not load memory graph — ' + e.message + '. Click Rebuild to retry.');
+  }
 }
 
 async function setModeTag() {
@@ -45,6 +56,10 @@ async function setModeTag() {
 }
 
 function render(data) {
+  if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.edges) || data.nodes.length === 0) {
+    showError('Graph is empty — seed memory first, then click Rebuild.');
+    return;
+  }
   const nodes = data.nodes.map(n => ({
     id: n.id, label: n.label, type: n.type, escalate: !!n.escalate,
     meta: n.meta || {}, color: colorFor(n), val: SIZE[n.type] || 4,

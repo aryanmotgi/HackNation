@@ -5,3 +5,5 @@ memory/data/
 .env
 jobs/
 samples/*.pdf
+.playwright-mcp/
+.claude/

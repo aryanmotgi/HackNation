@@ -204,18 +204,6 @@
     });
   }
 
-  // ── Voice cards ──────────────────────────────────────────────────────
-  function wireVoiceCards() {
-    var cards = document.querySelectorAll(".fg-voice-card");
-    cards.forEach(function (c) {
-      c.addEventListener("click", function () {
-        cards.forEach(function (x) { x.classList.remove("sel"); });
-        c.classList.add("sel");
-        state.voice_style = c.getAttribute("data-voice");
-      });
-    });
-  }
-
   // ── Build confirm payload from state ─────────────────────────────────
   function collectTriggers() {
     var keys = [
@@ -379,7 +367,6 @@
     });
 
     wireUpload();
-    wireVoiceCards();
 
     // Live locked banner + approval seed as floor changes
     var floorEl = $("deal_floor_price");
