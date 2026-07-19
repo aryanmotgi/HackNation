@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sales Desk · Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/dashboard.js" defer></script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__brand"><span class="nav__mark"></span> Loomhaus · Sales Desk</div>
+    <div class="nav__links">
+      <a class="nav__link nav__link--active" href="/dashboard">Dashboard</a>
+      <a class="nav__link" href="/messaging">Messaging</a>
+      <a class="nav__link" href="/graph">Graph</a>
+    </div>
+    <div class="nav__spacer"></div>
+    <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
+  </nav>
+
+  <main class="page">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">MANUFACTURER · MEMORY-DRIVEN NEGOTIATION</p>
+        <h1 class="h1">Sales Desk</h1>
+        <p class="sub">Live negotiation outcomes across accounts, driven by per-customer memory.</p>
+      </div>
+      <button id="replay-btn" class="btn" type="button">↻ Replay round</button>
+    </div>
+
+    <section id="metrics" class="metrics" aria-label="Desk metrics"></section>
+
+    <div class="section-head">
+      <div class="section-title">Customer accounts</div>
+    </div>
+    <section id="card-grid" class="card-grid" aria-label="Customer cards">
+      <div class="loading">Loading desk…</div>
+    </section>
+  </main>
+
+  <div id="backdrop" class="panel-backdrop"></div>
+  <aside id="panel" class="panel" aria-hidden="true">
+    <button id="panel-close" class="panel__close" type="button" aria-label="Close">×</button>
+    <div id="panel-body"></div>
+  </aside>
+</body>
+</html>

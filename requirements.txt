@@ -1,0 +1,10 @@
+# Python 3.12 (kuzu has no prebuilt wheel for 3.14 yet).
+kuzu==0.11.3          # graph + native vector index (memory layer)
+openai==2.46.0        # negotiation agent + customer bot (gpt-5.6-terra)
+python-dotenv==1.2.2  # load OPENAI_API_KEY from .env
+flask==3.1.3          # manufacturer dashboard server (frontend/)
+pdfplumber==0.11.10   # deterministic PDF price-sheet parsing (intake/)
+reportlab==5.0.0      # generate sample price-sheet PDFs (intake/)
+
+# Swap the stub embedder for this before the demo (see memory/embeddings.py):
+# sentence-transformers==3.0.1
