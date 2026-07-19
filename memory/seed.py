@@ -173,7 +173,8 @@ CALLS = [
     ("call_alpha_1", "cust_alpha", "deal_alpha", "2026-07-11T09:00:00",
      "Alpha pushed hard on unit price; held near target after anchoring high.", 0.1, 0.50),
     ("call_alpha_2", "cust_alpha", "deal_alpha", "2026-07-15T09:00:00",
-     "Deadline nudge landed; Alpha agreed to a smaller concession than last time.", 0.4, 0.70),
+     "Deadline nudge landed; closed at 3.85 per unit with priority freight included — "
+     "Alpha was happy with the freight and the fast lead time.", 0.4, 0.70),
 
     ("call_bravo_1", "cust_bravo", "deal_bravo", "2026-07-12T14:00:00",
      "Warm call; Bravo responsive after rapport, close to accepting target.", 0.7, 0.80),

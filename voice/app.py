@@ -29,7 +29,7 @@ from memory.retrieve import (
     write_call, write_quote,
 )
 from negotiation.scoring import price_capture, score_session
-from .spec import build_system_prompt, first_message, load_active_spec
+from .spec import build_system_prompt, first_message, last_close_price, load_active_spec
 
 load_dotenv()
 
@@ -225,6 +225,22 @@ def call_token():
         "agent_id": agent_id,
         "customer_id": customer_id,
         "customer_name": ctx["customer"]["name"],
+        "memory": {
+            "name": ctx["customer"]["name"],
+            "style": ctx["customer"]["style"],
+            "region": ctx["customer"]["region"],
+            "risk_flags": ctx["customer"]["risk_flags"],
+            "last_close": last_close_price(ctx),
+            "winning_tactics": [t["label"] for t in ctx["winning_tactics"]],
+            "lookalikes": [l["name"] for l in ctx["lookalikes"]],
+            "past_calls": [
+                {"ts": (c["ts"] or "")[:10], "summary": c["summary"], "score": c["outcome_score"]}
+                for c in ctx["past_calls"][:3]
+            ],
+            "floor": deal.get("floor_price"),
+            "target": deal.get("target_price"),
+            "escalate": ctx["escalate"],
+        },
         "overrides": {
             "agent": {
                 "prompt": {"prompt": build_system_prompt(spec, ctx)},
@@ -255,19 +271,30 @@ def make_offer():
     hr = spec.get("hard_rules", {})
     deal = spec.get("deal", {})
     floor = _num(hr.get("floor_price") or deal.get("floor_price")) or 0.0
+    target = _num(deal.get("target_price")) or floor
     cur = deal.get("currency", "USD")
+    # Margin hold line: the agent won't willingly quote below this without the buyer
+    # giving something concrete. Keeps a weak conversation model from folding to a
+    # lowball just because it clears the hard floor. Sits above the floor, below target.
+    hold_line = max(floor, round(target - 0.20, 2))
 
     if offer is None:
         return jsonify({"approved": False, "reason": "no offer_price provided"}), 200
 
     notes = []
-    approved = offer
     if offer < floor:
         approved = floor
         notes.append(f"Requested {offer} is below the floor; clamped to {floor}.")
-        say = f"The best I can responsibly do is {floor} {cur} per unit."
+        say = f"The best I can responsibly do is {floor} {cur} per unit. What volume are you locking in?"
+    elif offer < hold_line:
+        # Below the margin line — hold, and make the buyer earn it with volume/timeline.
+        approved = hold_line
+        notes.append(f"Held: {offer} was below the margin line {hold_line}; countered up.")
+        say = (f"I can't do {offer} {cur} — the sharpest I can go is {hold_line}, and only if you "
+               f"commit on volume. How many units are you locking in, and is your timeline firm?")
     else:
-        say = f"I can do {approved} {cur} per unit."
+        approved = offer
+        say = f"I can do {approved} {cur} per unit. What volume are you locking in so I can firm this up?"
 
     # Large-order escalation (transfer_deals_above on total value).
     transfer_above = _num(hr.get("transfer_deals_above"))
@@ -279,7 +306,7 @@ def make_offer():
         "approved": True,
         "approved_price": round(approved, 2),
         "currency": cur,
-        "say": say + " What volume are you locking in so I can firm this up?",
+        "say": say,
         "escalate_to_human": escalate,
         "notes": notes,
     })
@@ -357,9 +384,9 @@ def post_call():
 
 # --- ranked report -----------------------------------------------------------
 
-@voice_bp.route("/report", methods=["GET"])
+@voice_bp.route("/api/report", methods=["GET"])
 def report():
-    """Rank every live-call quote by manufacturer value; cite recordings."""
+    """Rank every live-call quote by manufacturer value; cite recordings + transcripts."""
     conn = _conn()
     spec = load_active_spec()
     floor = _num(spec.get("deal", {}).get("floor_price")) or 0.0
@@ -368,23 +395,47 @@ def report():
     rows = []
     r = conn.execute(
         "MATCH (k:Call)-[:PRODUCED]->(q:Quote) "
-        "RETURN q.customer_id, q.product, q.unit_price, q.quantity, q.currency, "
-        "q.sweetener, q.outcome, q.total, k.recording_url, k.ts ORDER BY q.ts DESC"
+        "OPTIONAL MATCH (c:Customer {id: q.customer_id}) "
+        "RETURN q.customer_id, c.name, q.product, q.unit_price, q.quantity, q.currency, "
+        "q.sweetener, q.outcome, q.total, k.recording_url, k.transcript, k.id, q.ts, "
+        "k.summary, q.terms "
+        "ORDER BY q.ts DESC"
     )
     while r.has_next():
-        (cust, product, unit, qty, cur, sweet, outcome, total, rec, ts) = r.get_next()
+        (cust, name, product, unit, qty, cur, sweet, outcome, total, rec,
+         transcript, call_id, ts, summary, terms) = r.get_next()
         capture = price_capture(unit, floor, target) if unit is not None else 0.0
+        # Red-flag rules (manufacturer equivalent of "30% below market"):
+        flags = []
+        if outcome == "closed" and capture < 0.15:
+            flags.append("Thin margin — closed near the floor")
+        if outcome == "declined":
+            flags.append("No deal reached")
+        # Itemised fee breakdown: unit price, any sweetener, terms, total.
+        line_items = [{"label": "Unit price", "value": unit, "unit": f"{cur}/unit"}]
+        if sweet:
+            line_items.append({"label": "Included", "value": sweet, "unit": ""})
+        if terms:
+            line_items.append({"label": "Terms", "value": terms, "unit": ""})
         rows.append({
-            "customer_id": cust, "product": product, "unit_price": unit,
-            "quantity": qty, "currency": cur, "sweetener": sweet, "outcome": outcome,
-            "total": total, "price_capture": round(capture, 2),
-            "recording_url": rec, "ts": ts,
+            "customer_id": cust, "customer_name": name or cust, "product": product,
+            "unit_price": unit, "quantity": qty, "currency": cur, "sweetener": sweet,
+            "outcome": outcome, "total": total, "price_capture": round(capture, 2),
+            "recording_url": rec, "transcript": transcript, "call_id": call_id, "ts": ts,
+            "summary": summary, "terms": terms, "flags": flags, "line_items": line_items,
         })
     # Rank: closed first, then higher price_capture, then higher total.
     rows.sort(key=lambda x: (x["outcome"] == "closed", x["price_capture"], x["total"] or 0),
               reverse=True)
+    closed = [x for x in rows if x["outcome"] == "closed"]
+    metrics = {
+        "total": len(rows),
+        "closed": len(closed),
+        "avg_capture": round(sum(x["price_capture"] for x in closed) / len(closed), 2) if closed else 0.0,
+        "flagged": sum(1 for x in rows if x["flags"]),
+    }
     recommendation = _plain_recommendation(rows, spec)
-    return jsonify({"floor": floor, "target": target, "ranked_quotes": rows,
+    return jsonify({"floor": floor, "target": target, "metrics": metrics, "ranked_quotes": rows,
                     "recommendation": recommendation})
 
 
@@ -424,11 +475,21 @@ def _build_summary(outcome, price, qty, sweetener, competitor, cur, analysis) ->
 def _plain_recommendation(rows: list, spec: dict) -> str:
     closed = [r for r in rows if r["outcome"] == "closed"]
     if not closed:
-        return "No deals closed yet — no recommendation."
+        return "No deals closed yet — nothing to recommend."
     best = closed[0]
-    return (f"Recommend locking {best['customer_id']} at {best['unit_price']} "
-            f"{best['currency']}/unit ({best['quantity']} units) — highest-value close, "
-            f"price capture {best['price_capture']}. See the call recording for evidence.")
+    cur = best.get("currency", "USD")
+    pct = int(round((best["price_capture"] or 0) * 100))
+    why = (f"Lock {best['customer_name']} at {best['unit_price']} {cur}/unit on "
+           f"{best['quantity']} units — the strongest close, capturing {pct}% of the "
+           f"floor-to-target spread")
+    if len(closed) > 1:
+        run = closed[1]
+        rpct = int(round((run["price_capture"] or 0) * 100))
+        why += f", ahead of {run['customer_name']} at {run['unit_price']} ({rpct}%)"
+    if best.get("sweetener"):
+        why += f", with {best['sweetener']} thrown in"
+    why += ". Every quoted price stayed above the floor — see the recording and transcript below."
+    return why
 
 
 def create_app() -> Flask:

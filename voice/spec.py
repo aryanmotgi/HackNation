@@ -11,6 +11,7 @@ from __future__ import annotations
 import glob
 import json
 import os
+import re
 from typing import Any, Optional
 
 from intake.job_spec import JOBS_DIR, validate_spec
@@ -63,8 +64,8 @@ def memory_brief(ctx: dict[str, Any]) -> str:
         f"{t['label']} ({t['source']})" for t in ctx["winning_tactics"]
     ) or "none recorded yet"
     looks = ", ".join(l["name"] for l in ctx["lookalikes"]) or "none"
-    recent = "; ".join(
-        f"{(r['ts'] or '')[:10]} score={r['outcome_score']}" for r in ctx["past_calls"]
+    recent = " | ".join(
+        f"{(r['ts'] or '')[:10]}: {r['summary']}" for r in ctx["past_calls"][:3]
     ) or "no prior calls — this is a new customer"
     return (
         f"Customer: {c['name']} (style: {c['style']}), region {c['region']}, "
@@ -98,6 +99,11 @@ def build_system_prompt(spec: dict[str, Any], ctx: dict[str, Any]) -> str:
         f"Forbidden terms (never agree to these): {forbidden}.\n\n"
         "# How to negotiate (protect margin — closing HIGH is the goal)\n"
         f"- Open at your target {target} and treat it as a serious ask, not a formality.\n"
+        "- GATHER leverage BEFORE you move on price. Early in the call, ask what volume they're "
+        "committing to and whether their timeline is firm. Then only move your price in EXCHANGE "
+        "for something concrete, and SAY THE REASON OUT LOUD — e.g. 'since you're locking 5,000 "
+        "units with a firm month-end, I can come down to 3.80.' Never lower your price without "
+        "naming what you got for it. The price should visibly move because of what you gathered.\n"
         "- Concede in SMALL steps — at most 10-15 cents at a time, and only after the buyer pushes back with a real reason.\n"
         "- Never volunteer a lower price. Make the buyer earn every concession; holding firm for a few turns is good.\n"
         f"- Do NOT approach {floor} unless the buyer is clearly about to walk away after several rounds. A close near {target} is a win; the floor is a last resort, not a target.\n"
@@ -110,19 +116,41 @@ def build_system_prompt(spec: dict[str, Any], ctx: dict[str, Any]) -> str:
         "- If asked whether you are an AI or robot, say yes plainly and offer to bring in a human.\n"
         "- Never invent stock, fake competitor bids, fake discounts, or terms you cannot honor.\n"
         "- If the buyer is angry or asks for a manager, calmly offer to hand off to a human.\n\n"
-        "# What memory knows about THIS caller (adapt to it)\n"
-        f"{memory_brief(ctx)}\n\n"
+        "# Use your memory of THIS caller as leverage\n"
+        f"{memory_brief(ctx)}\n"
+        "Actively USE this. Greet them by name. Early in the call, remind them what they "
+        "agreed to last time and the value they got — e.g. 'last quarter we landed at 3.85 "
+        "and you were happy with the priority freight.' Lean on what you know moves them "
+        "(volume, lead time, the tactic that worked before).\n"
+        "When they push back or name a competitor's price, do NOT match the number. Instead: "
+        "acknowledge it, anchor on their own history ('you and I have done this before at X'), "
+        "and trade volume or a sweetener to bring them to a close ABOVE your floor. Your edge "
+        "is that you remember them and they can't take that back — use it to hold your price.\n\n"
         "# Closing\n"
         "When you reach agreement, restate the final terms (unit price, quantity, any sweetener, "
         "payment terms) and say you'll send the PO confirmation."
     )
 
 
+def last_close_price(ctx: dict[str, Any]) -> Optional[str]:
+    """Pull a concrete unit price out of the caller's most recent call summaries."""
+    for c in ctx.get("past_calls", []):
+        m = re.search(r"(\d+\.\d{2})", c.get("summary") or "")
+        if m:
+            return m.group(1)
+    return None
+
+
 def first_message(spec: dict[str, Any], ctx: dict[str, Any]) -> str:
-    """A greeting that uses memory when the caller is known."""
+    """A greeting that uses memory when the caller is known — and states a concrete
+    fact (last close) so the memory is always audible, not left to the model."""
     company = spec.get("company", {}).get("name", "Loomhaus")
     name = ctx["customer"]["name"]
     product = spec.get("deal", {}).get("product", "your order")
     if ctx["past_calls"]:
-        return f"Hi, thanks for calling {company} — this is Alex. Good to hear from you again, {name}. Is this about {product}?"
+        price = last_close_price(ctx)
+        hist = (f" — last quarter we closed at {price} a unit with priority freight, "
+                "and you were happy with the fast lead time") if price else ""
+        return (f"Hi, thanks for calling {company} — this is Alex. Good to hear from you "
+                f"again, {name}{hist}. Is this about {product} again?")
     return f"Hi, thanks for calling {company} — this is Alex. Who am I speaking with, and what are you looking to source today?"

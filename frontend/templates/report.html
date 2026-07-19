@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deal Report · Lowball</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/appshell.css">
+  <style>
+    .rep{padding:26px 30px;overflow:auto;max-width:1000px;}
+    .rep__head{margin-bottom:22px;}
+    .rep__title{font-size:26px;font-weight:700;margin:0;color:#23211B;}
+    .rep__sub{font:12px/1.5 'IBM Plex Mono',monospace;color:#8A8168;margin-top:4px;}
+    /* summary tiles */
+    .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+    .tile2{background:#FCFAF3;border:1px solid #E3D9C2;border-radius:12px;padding:16px 18px;}
+    .tile2__v{font:700 26px/1 'Space Grotesk';color:#23211B;font-variant-numeric:tabular-nums;}
+    .tile2__l{font:600 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#8A8168;margin-top:8px;}
+    .tile2--alert .tile2__v{color:#9A4230;}
+    /* recommended banner */
+    .rec{background:#0E1512;color:#F3EEE2;border-radius:14px;padding:20px 24px;margin-bottom:26px;}
+    .rec__l{font:600 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.16em;text-transform:uppercase;opacity:.5;margin-bottom:9px;}
+    .rec__t{font-size:16.5px;font-weight:600;line-height:1.5;}
+    .sec-h{font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#A99C7E;margin:0 0 12px;}
+    /* deal cards */
+    .deal{background:#FCFAF3;border:1px solid #E3D9C2;border-radius:13px;padding:18px 20px;margin-bottom:14px;}
+    .deal__top{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+    .deal__rank{font:700 15px/1 'IBM Plex Mono',monospace;color:#8A8168;}
+    .deal__name{font-size:17px;font-weight:600;color:#23211B;}
+    .deal__spacer{flex:1;}
+    .pill{display:inline-block;padding:3px 11px;border-radius:999px;font:600 12px/1.5 'IBM Plex Mono',monospace;text-transform:capitalize;}
+    .pill--closed{background:#DCEFDD;color:#2E6B33;}
+    .pill--callback{background:#FBEFD6;color:#8A6A1E;}
+    .pill--declined{background:#F0E6E2;color:#9A4230;}
+    .flag{display:inline-block;padding:3px 10px;border-radius:6px;font:600 11.5px/1.4 'IBM Plex Mono',monospace;background:#F7E4DE;color:#9A4230;}
+    .deal__grid{display:grid;grid-template-columns:1.3fr .9fr;gap:20px;}
+    .li{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #E9E0CC;font-size:14px;}
+    .li:last-child{border-bottom:none;}
+    .li__l{color:#6C6555;font:12.5px 'IBM Plex Mono',monospace;}
+    .li__v{color:#23211B;font-weight:500;font-variant-numeric:tabular-nums;text-align:right;}
+    .li--total .li__l,.li--total .li__v{font-weight:700;color:#23211B;}
+    .num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+    .cap{margin-top:6px;}
+    .cap-bar{height:7px;background:#EFE8D8;border-radius:4px;overflow:hidden;}
+    .cap-fill{height:100%;background:var(--green,#2E6B33);}
+    .cap-l{font:11.5px 'IBM Plex Mono',monospace;color:#6C6555;margin-top:5px;display:flex;justify-content:space-between;}
+    .why{background:#F3EEE2;border-left:3px solid #C79A3A;border-radius:0 8px 8px 0;padding:11px 14px;margin-top:14px;font-size:13.5px;color:#4A4536;line-height:1.5;}
+    .why b{color:#8A6A1E;font:600 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:5px;}
+    .ev{margin-top:12px;}
+    a.cite{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#2E7D9A;text-decoration:none;margin-right:16px;}
+    a.cite:hover{text-decoration:underline;}
+    .rep-empty{padding:48px;text-align:center;color:#8A8168;background:#FCFAF3;border:1px solid #E3D9C2;border-radius:12px;}
+    dialog.tx{max-width:660px;width:92%;border:none;border-radius:12px;padding:0;}
+    dialog.tx pre{white-space:pre-wrap;font:13px/1.6 'IBM Plex Mono',monospace;padding:20px;margin:0;max-height:66vh;overflow:auto;}
+    dialog.tx header{padding:14px 20px;border-bottom:1px solid #E3D9C2;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+    @media(max-width:720px){.tiles{grid-template-columns:repeat(2,1fr);}.deal__grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    {% set active = 'report' %}
+    {% include '_sidebar.html' %}
+
+    <div class="work">
+      <div class="topbar">
+        <div class="topbar__crumb"><b>Deal Report</b> · ranked outcomes with transcript evidence</div>
+        <div class="topbar__right">
+          <button id="refresh" class="btn" type="button">↻ Refresh</button>
+        </div>
+      </div>
+
+      <div class="rep">
+        <div class="rep__head">
+          <h1 class="rep__title">Deal Report</h1>
+          <div class="rep__sub" id="sub">Ranked comparison of every negotiated deal · floor and target enforced</div>
+        </div>
+
+        <div class="tiles" id="tiles" hidden></div>
+
+        <div class="rec" id="rec" hidden>
+          <div class="rec__l">Recommended deal</div>
+          <div class="rec__t" id="rec-text"></div>
+        </div>
+
+        <p class="sec-h" id="ranked-h" hidden>Ranked deals</p>
+        <div id="content"></div>
+      </div>
+    </div>
+  </div>
+
+  <dialog class="tx" id="txdialog">
+    <header><span id="tx-title">Transcript</span>
+      <button class="btn btn--ghost" type="button" onclick="document.getElementById('txdialog').close()">Close</button>
+    </header>
+    <pre id="tx-body"></pre>
+  </dialog>
+
+  <script>
+    function money(n, c){ return n == null ? '—' : (c || 'USD') + ' ' + Number(n).toFixed(2); }
+    function qty(n){ return n == null ? '—' : Number(n).toLocaleString(); }
+
+    function tiles(m){
+      var t = document.getElementById('tiles');
+      t.hidden = false;
+      t.innerHTML =
+        tile(m.closed + '/' + m.total, 'Deals closed') +
+        tile(Math.round((m.avg_capture||0)*100) + '%', 'Avg margin captured') +
+        tile(money((window._floor), 'USD').replace('USD ','$'), 'Floor held') +
+        tile(m.flagged, 'Flagged', m.flagged > 0);
+    }
+    function tile(v, l, alert){
+      return '<div class="tile2' + (alert ? ' tile2--alert' : '') + '"><div class="tile2__v">' + v + '</div><div class="tile2__l">' + l + '</div></div>';
+    }
+
+    function dealCard(q, i, rows){
+      var oc = q.outcome || 'declined';
+      var cap = Math.round((q.price_capture || 0) * 100);
+      var items = (q.line_items || []).map(function(li){
+        var v = (typeof li.value === 'number') ? Number(li.value).toFixed(2) : li.value;
+        return '<div class="li"><span class="li__l">' + li.label + '</span><span class="li__v">' + (v || '—') + (li.unit ? ' <span class="li__l">' + li.unit + '</span>' : '') + '</span></div>';
+      }).join('');
+      items += '<div class="li"><span class="li__l">Quantity</span><span class="li__v num">' + qty(q.quantity) + '</span></div>';
+      items += '<div class="li li--total"><span class="li__l">Total</span><span class="li__v num">' + money(q.total, q.currency) + '</span></div>';
+
+      var flags = (q.flags || []).map(function(f){ return '<span class="flag">⚑ ' + f + '</span>'; }).join(' ');
+
+      return '<div class="deal">'
+        + '<div class="deal__top">'
+        +   '<span class="deal__rank">#' + (i + 1) + '</span>'
+        +   '<span class="deal__name">' + (q.customer_name || q.customer_id) + '</span>'
+        +   '<span class="pill pill--' + oc + '">' + oc + '</span>'
+        +   '<span class="deal__spacer"></span>' + flags
+        + '</div>'
+        + '<div class="deal__grid">'
+        +   '<div>' + items + '</div>'
+        +   '<div><div class="cap"><div class="cap-bar"><div class="cap-fill" style="width:' + cap + '%"></div></div>'
+        +     '<div class="cap-l"><span>Margin captured</span><span class="num">' + cap + '%</span></div></div></div>'
+        + '</div>'
+        + (q.summary ? '<div class="why"><b>How it went · leverage</b>' + q.summary + '</div>' : '')
+        + '<div class="ev">'
+        +   (q.recording_url ? '<a class="cite" href="' + q.recording_url + '" target="_blank" rel="noopener">▶ recording</a>' : '')
+        +   (q.transcript ? '<a class="cite" href="#" data-tx="' + i + '">▤ transcript</a>' : '')
+        + '</div>'
+        + '</div>';
+    }
+
+    function render(d){
+      window._floor = d.floor;
+      document.getElementById('rec-text').textContent = d.recommendation || '';
+      document.getElementById('rec').hidden = !d.recommendation;
+      if (d.metrics) tiles(d.metrics);
+      document.getElementById('sub').textContent =
+        'Floor $' + (d.floor != null ? Number(d.floor).toFixed(2) : '—') + ' · target $' + (d.target != null ? Number(d.target).toFixed(2) : '—') + ' · every quote must clear the floor';
+
+      var rows = d.ranked_quotes || [];
+      var el = document.getElementById('content');
+      document.getElementById('ranked-h').hidden = !rows.length;
+      if (!rows.length){
+        el.innerHTML = '<div class="rep-empty">No live calls yet. Make a call from <b>Live demo</b>, hang up, then hit Refresh — each negotiated deal lands here, ranked, with its fee breakdown, recording, and transcript.</div>';
+        return;
+      }
+      el.innerHTML = rows.map(function(q, i){ return dealCard(q, i, rows); }).join('');
+      el.querySelectorAll('a[data-tx]').forEach(function(a){
+        a.addEventListener('click', function(e){
+          e.preventDefault();
+          var q = rows[+a.dataset.tx];
+          document.getElementById('tx-title').textContent = 'Transcript · ' + (q.customer_name || q.customer_id);
+          document.getElementById('tx-body').textContent = q.transcript || '(no transcript stored)';
+          document.getElementById('txdialog').showModal();
+        });
+      });
+    }
+
+    function load(){
+      fetch('/api/report').then(function(r){ return r.json(); }).then(render)
+        .catch(function(){ document.getElementById('content').innerHTML = '<div class="rep-empty">Could not load the report.</div>'; });
+    }
+    document.getElementById('refresh').addEventListener('click', load);
+    load();
+  </script>
+</body>
+</html>
