@@ -74,6 +74,11 @@ def messaging():
     return render_template("messaging.html")
 
 
+@app.route("/graph")
+def graph():
+    return render_template("graph.html")
+
+
 @app.route("/api/sessions")
 def api_sessions():
     return jsonify(_snapshot())
@@ -82,6 +87,13 @@ def api_sessions():
 @app.route("/api/refresh", methods=["POST"])
 def api_refresh():
     return jsonify(_snapshot(force=True))
+
+
+@app.route("/api/graph")
+def api_graph():
+    from memory.graph import get_full_graph
+    _snapshot()  # ensure memory is seeded before reading the graph
+    return jsonify(get_full_graph())
 
 
 if __name__ == "__main__":

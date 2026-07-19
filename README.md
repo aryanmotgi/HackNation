@@ -56,6 +56,7 @@ cp .env.example .env               # add OPENAI_API_KEY (model: gpt-5.6-terra)
 .venv/bin/python -m frontend.app
 #   http://127.0.0.1:5001/            dashboard (overview, metrics, memory drawer)
 #   http://127.0.0.1:5001/messaging   live turn-by-turn negotiations, 3 side by side
+#   http://127.0.0.1:5001/graph       3D memory graph — every node connected, click for detail
 ```
 
 **Smoke test** — verify the whole stack (no API key needed):

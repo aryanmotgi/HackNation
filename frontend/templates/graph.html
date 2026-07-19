@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Memory Graph · Loomhaus Sales Desk</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/vendor/three.min.js"></script>
+  <script src="/static/vendor/3d-force-graph.min.js"></script>
+  <script src="/static/graph.js" defer></script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__brand"><span class="nav__mark"></span> Loomhaus · Sales Desk</div>
+    <div class="nav__links">
+      <a class="nav__link" href="/">Dashboard</a>
+      <a class="nav__link" href="/messaging">Messaging</a>
+      <a class="nav__link nav__link--active" href="/graph">Graph</a>
+    </div>
+    <div class="nav__spacer"></div>
+    <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
+  </nav>
+
+  <div class="graph-wrap">
+    <div id="cy"></div>
+
+    <div class="graph-legend">
+      <div class="graph-legend__title">Memory graph · 3D</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#0E1512"></span> Manufacturer</div>
+      <div class="legend-row"><span class="legend-dot" style="background:var(--green)"></span> Customer</div>
+      <div class="legend-row"><span class="legend-dot" style="background:var(--red)"></span> Customer · needs human</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#2E7D9A"></span> Deal</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#C79A3A"></span> Call</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#8B94A3"></span> Pattern</div>
+      <div class="legend-row"><span class="legend-line"></span> Lookalike (tactic transfer)</div>
+      <div class="legend-hint">Drag to orbit · scroll to zoom · click a node</div>
+    </div>
+
+    <div class="graph-head">
+      <button id="fit" class="btn btn--ghost">Fit</button>
+      <button id="replay" class="btn">↻ Rebuild</button>
+    </div>
+
+    <div id="detail" class="node-detail">
+      <button class="node-detail__close" id="detail-close" aria-label="Close">×</button>
+      <div class="node-detail__type" id="detail-type">—</div>
+      <div class="node-detail__title" id="detail-title">—</div>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+</body>
+</html>
