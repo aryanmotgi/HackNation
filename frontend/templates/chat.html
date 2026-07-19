@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat · Lowball</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/appshell.css">
+  <link rel="stylesheet" href="/static/chat.css">
+  <script src="/static/chat.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    {% set active = 'chat' %}
+    {% include '_sidebar.html' %}
+
+    <div class="work">
+      <div class="topbar">
+        <div class="topbar__crumb"><b>Chat</b> · Memory Q&amp;A</div>
+        <div class="topbar__right">
+          <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
+        </div>
+      </div>
+
+      <div class="work__body">
+        <div class="work__demo">Memory Q&amp;A</div>
+        <div class="greet">
+          <div>
+            <h1 class="greet__h">Ask your agent</h1>
+            <p class="greet__sub">Query negotiation memory — tactics, call history, customer profiles, lookalike patterns.</p>
+            <div class="chat-suggest">
+              <span class="chat-suggest__chip" data-suggest="Which customer is most at risk right now?">Who's at risk?</span>
+              <span class="chat-suggest__chip" data-suggest="What tactics work best on hard hagglers?">Best tactics for hagglers</span>
+              <span class="chat-suggest__chip" data-suggest="Summarize Charlie Retail's negotiation history.">Summarize Charlie</span>
+              <span class="chat-suggest__chip" data-suggest="Where are we leaving margin on the table?">Where's margin leaking?</span>
+            </div>
+          </div>
+          <div class="chat-controls">
+            <label class="chat-label" for="customer-select">Customer</label>
+            <select class="chat-select" id="customer-select">
+              <option value="">All customers</option>
+              <option value="cust_alpha">Alpha Textiles</option>
+              <option value="cust_bravo">Bravo Imports</option>
+              <option value="cust_charlie">Charlie Retail</option>
+              <option value="cust_delta">Delta Fashion</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="chat-wrap">
+          <div class="chat-thread" id="chat-thread"></div>
+          <div class="chat-bar">
+            <textarea class="chat-input" id="chat-input" rows="1"
+              placeholder="Ask about a customer, tactic, deal…"></textarea>
+            <button class="btn" id="chat-send" type="button">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

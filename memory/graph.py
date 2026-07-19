@@ -27,7 +27,7 @@ def get_full_graph() -> dict[str, Any]:
     # --- Manufacturer hub (root) — connects every customer into one component ---
     HUB = "mfr_root"
     nodes.append({
-        "id": HUB, "type": "Manufacturer", "label": "Loomhaus",
+        "id": HUB, "type": "Manufacturer", "label": "Lowball",
         "meta": {"note": "The manufacturer. Every customer account hangs off this hub."},
     })
 

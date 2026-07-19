@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Desk · Lowball Sales Desk</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/appshell.css">
+  <link rel="stylesheet" href="/static/call.css">
+</head>
+<body>
+  <div class="shell">
+    {% set active = 'live' %}
+    {% include '_sidebar.html' %}
+
+    <div class="work">
+      <div class="topbar">
+        <div class="topbar__crumb"><b>Live demo</b> · In-browser voice call</div>
+        <div class="topbar__right">
+          <span class="mode-tag"><span class="mode-tag__dot"></span> LIVE · ElevenLabs</span>
+        </div>
+      </div>
+
+      <div class="call-page">
+    <div class="call-intro">
+      <p class="eyebrow">Live Voice · Track 3</p>
+      <h1 class="h1">Call Desk</h1>
+      <p class="sub">You are the <strong>buyer</strong>. Dial the manufacturer's agent — it
+        picks up, negotiates from memory, and holds the floor in real time.</p>
+    </div>
+
+    <div class="iphone" id="phone" data-agent="{{ agent_id }}">
+      <!-- side hardware buttons -->
+      <span class="iphone__side iphone__side--silent"></span>
+      <span class="iphone__side iphone__side--volup"></span>
+      <span class="iphone__side iphone__side--voldn"></span>
+      <span class="iphone__side iphone__side--power"></span>
+
+      <div class="iphone__screen">
+        <div class="statusbar">
+          <span class="statusbar__time">9:41</span>
+          <span class="statusbar__right">
+            <span class="sb-signal"><i></i><i></i><i></i><i></i></span>
+            <span class="sb-wifi"></span>
+            <span class="sb-batt"><b></b></span>
+          </span>
+        </div>
+        <div class="island"><span class="island__cam"></span></div>
+        <div class="screen-gloss" aria-hidden="true"></div>
+
+        <div class="callscreen">
+          <div class="callscreen__top">
+            <div class="callscreen__status">
+              <span class="phone__dot" id="statusDot"></span>
+              <span id="statusText">Ready to call</span>
+            </div>
+            <div class="callscreen__timer" id="timer" hidden>00:00</div>
+            <div class="callscreen__enc">🔒 end-to-end encrypted · Lowball</div>
+          </div>
+
+          <div class="callscreen__mid">
+            <div class="avatar" id="avatar">
+              <span class="avatar__initials">NM</span>
+              <span class="avatar__ring"></span>
+              <span class="avatar__ring avatar__ring--2"></span>
+            </div>
+            <div class="callscreen__name">Nova Manufacturing</div>
+            <div class="callscreen__role">Sales agent · Lowball</div>
+
+            <div class="viz" id="viz" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="callscreen__speaker" id="speaker">&nbsp;</div>
+          </div>
+
+          <div class="callscreen__bottom">
+            <!-- iOS-style control cluster (visible mid-call) -->
+            <div class="iosgrid">
+              <div class="ioskey"><span class="ioskey__ic">🔇</span><span class="ioskey__lb">mute</span></div>
+              <div class="ioskey"><span class="ioskey__ic">⌗</span><span class="ioskey__lb">keypad</span></div>
+              <div class="ioskey"><span class="ioskey__ic">🔊</span><span class="ioskey__lb">speaker</span></div>
+            </div>
+
+            <div class="callmain">
+              <button class="callbtn callbtn--go" id="callBtn" type="button" aria-label="Call">
+                <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M6.6 10.8a15.6 15.6 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.3.2 2.5.57 3.6a1 1 0 0 1-.25 1l-2.2 2.2Z"/></svg>
+              </button>
+              <span class="callmain__label" id="callBtnLabel">Call</span>
+            </div>
+
+            <div class="callscreen__hint" id="hint">Uses your microphone. Speak naturally — the agent listens and replies.</div>
+            <div class="homebar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+      <div class="call-log" id="log" hidden>
+        <div class="call-log__head">Transcript</div>
+        <div class="call-log__body" id="logBody"></div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <script src="/static/call.js" type="module"></script>
+</body>
+</html>

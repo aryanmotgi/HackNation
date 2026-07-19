@@ -1,0 +1,235 @@
+/* Call Desk — realistic iPhone with an iOS call screen. Sits on the shared
+   design system (styles.css). Green = live, amber = connecting, red = hangup. */
+
+.call-page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 34px 28px 70px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 26px;
+  justify-items: center;
+}
+.call-intro { text-align: center; max-width: 560px; }
+.call-intro .sub { margin-top: 6px; }
+.call-intro strong { color: var(--green-ink); font-weight: 600; }
+
+/* ============================ the iPhone ================================== */
+.iphone {
+  position: relative;
+  width: 344px;
+  max-width: 90vw;
+  aspect-ratio: 344 / 712;
+  border-radius: 60px;
+  padding: 15px;
+  background:
+    linear-gradient(145deg, #52525a 0%, #2a2a2d 14%, #161618 40%, #161618 62%, #2a2a2d 86%, #5a5a62 100%);
+  box-shadow:
+    0 50px 100px rgba(14,21,18,.38),
+    0 12px 30px rgba(14,21,18,.24),
+    inset 0 0 0 1px rgba(255,255,255,.10),
+    inset 0 3px 4px rgba(255,255,255,.24),
+    inset 0 -3px 4px rgba(0,0,0,.5);
+}
+/* polished titanium rail highlight around the frame */
+.iphone::before {
+  content: ""; position: absolute; inset: 4px; border-radius: 56px;
+  background: linear-gradient(145deg, rgba(255,255,255,.22), transparent 22%, transparent 78%, rgba(255,255,255,.18));
+  pointer-events: none; z-index: 3;
+}
+/* thin black gap between titanium rail and glass */
+.iphone::after {
+  content: ""; position: absolute; inset: 12px; border-radius: 48px;
+  box-shadow: inset 0 0 0 2px #000; pointer-events: none; z-index: 3;
+}
+
+/* side hardware buttons — titanium, subtly raised */
+.iphone__side {
+  position: absolute; z-index: 2;
+  background: linear-gradient(180deg, #4a4a50, #2a2a2d);
+  border-radius: 2px; box-shadow: inset 0 1px 1px rgba(255,255,255,.25), 0 1px 2px rgba(0,0,0,.5);
+}
+.iphone__side--silent { left: -2px; top: 120px; width: 3px; height: 28px; }
+.iphone__side--volup  { left: -2px; top: 166px; width: 3px; height: 54px; }
+.iphone__side--voldn  { left: -2px; top: 232px; width: 3px; height: 54px; }
+.iphone__side--power  { right: -2px; top: 186px; width: 3px; height: 82px; }
+
+.iphone__screen {
+  position: relative;
+  width: 100%; height: 100%;
+  border-radius: 47px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 55% at 50% -8%, rgba(14,140,78,.30), transparent 55%),
+    radial-gradient(90% 40% at 80% 8%, rgba(53,208,127,.10), transparent 60%),
+    linear-gradient(180deg, #0E1D17 0%, #0A100D 55%, #060A08 100%);
+  display: flex; flex-direction: column;
+  color: #EAF1EA;
+  transition: background .5s ease;
+}
+
+/* glassy diagonal reflection over the screen */
+.screen-gloss {
+  position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  background: linear-gradient(125deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.03) 18%, transparent 40%);
+  mix-blend-mode: screen;
+}
+
+/* iOS status bar */
+.statusbar {
+  position: absolute; top: 0; left: 0; right: 0; height: 52px; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 30px; padding-top: 8px;
+  font-family: var(--font-ui); color: #fff;
+}
+.statusbar__time { font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+.statusbar__right { display: flex; align-items: center; gap: 7px; }
+/* signal bars */
+.sb-signal { display: inline-flex; align-items: flex-end; gap: 2px; height: 11px; }
+.sb-signal i { width: 3px; background: #fff; border-radius: 1px; }
+.sb-signal i:nth-child(1){ height: 4px } .sb-signal i:nth-child(2){ height: 6px }
+.sb-signal i:nth-child(3){ height: 8px } .sb-signal i:nth-child(4){ height: 11px }
+/* wifi glyph */
+.sb-wifi { width: 16px; height: 12px;
+  -webkit-mask: radial-gradient(circle at 50% 100%, #000 0 2px, transparent 2.5px 4px, #000 4.5px 6.5px, transparent 7px 9px, #000 9.5px 11.5px, transparent 12px) 50% 100%/100% 100% no-repeat;
+  mask: radial-gradient(circle at 50% 100%, #000 0 2px, transparent 2.5px 4px, #000 4.5px 6.5px, transparent 7px 9px, #000 9.5px 11.5px, transparent 12px) 50% 100%/100% 100% no-repeat;
+  background: #fff; }
+/* battery */
+.sb-batt { width: 24px; height: 12px; border-radius: 3px; border: 1.5px solid rgba(255,255,255,.55); position: relative; padding: 1.5px; }
+.sb-batt::after { content: ""; position: absolute; right: -3px; top: 3.5px; width: 2px; height: 4px; border-radius: 0 1px 1px 0; background: rgba(255,255,255,.55); }
+.sb-batt b { display: block; width: 80%; height: 100%; border-radius: 1px; background: #35D07F; }
+.iphone.is-connecting .iphone__screen {
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(214,170,60,.34), transparent 55%),
+    linear-gradient(180deg, #1c1a10 0%, #0C1410 55%, #080D0A 100%);
+}
+.iphone.is-live .iphone__screen {
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgba(14,140,78,.5), transparent 60%),
+    linear-gradient(180deg, #103322 0%, #0C1712 55%, #080D0A 100%);
+}
+
+/* Dynamic Island */
+.island {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  width: 112px; height: 32px; background: #000; border-radius: 18px; z-index: 6;
+  display: flex; align-items: center; justify-content: flex-end; padding-right: 12px;
+}
+.island__cam { width: 9px; height: 9px; border-radius: 50%; background: #0c1a1e; box-shadow: inset 0 0 3px rgba(70,120,140,.7); }
+
+/* ============================ call screen ================================ */
+.callscreen {
+  flex: 1; display: flex; flex-direction: column;
+  padding: 62px 24px 20px;
+  position: relative; z-index: 2;
+}
+
+.callscreen__top { text-align: center; }
+.callscreen__status {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: 13px; color: rgba(220,231,210,.85);
+}
+.phone__dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(220,231,210,.5); }
+.phone__dot--green { background: #35D07F; box-shadow: 0 0 10px #35D07F; }
+.phone__dot--amber { background: #E7B84B; box-shadow: 0 0 10px #E7B84B; animation: blink 1s steps(2) infinite; }
+.phone__dot--red   { background: #FF5A4E; box-shadow: 0 0 10px #FF5A4E; }
+@keyframes blink { 50% { opacity: .3; } }
+.callscreen__timer {
+  margin-top: 4px; font-family: var(--font-mono); font-size: 15px; letter-spacing: 1px;
+  color: #fff; font-variant-numeric: tabular-nums;
+}
+.callscreen__enc { margin-top: 6px; font-size: 11px; color: rgba(220,231,210,.42); }
+
+/* middle — big avatar + name */
+.callscreen__mid {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+}
+.avatar {
+  position: relative; width: 108px; height: 108px; border-radius: 50%;
+  display: grid; place-items: center; margin-bottom: 16px;
+  background: radial-gradient(120% 120% at 32% 24%, #2fd07e 0%, #12A159 45%, #0A6B3B 100%);
+  box-shadow:
+    0 14px 44px rgba(14,140,78,.55),
+    0 0 0 6px rgba(53,208,127,.08),
+    inset 0 3px 8px rgba(255,255,255,.35),
+    inset 0 -6px 12px rgba(0,0,0,.25);
+}
+.avatar__initials { font-family: var(--font-mono); font-weight: 600; font-size: 30px; color: #fff; letter-spacing: 1px; }
+.avatar__ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(53,208,127,.55); opacity: 0; }
+.iphone.is-live .avatar__ring,
+.iphone.is-connecting .avatar__ring { animation: ring 2.2s ease-out infinite; }
+.iphone.is-live .avatar__ring--2,
+.iphone.is-connecting .avatar__ring--2 { animation-delay: 1.1s; }
+@keyframes ring { 0% { opacity: .7; transform: scale(1); } 100% { opacity: 0; transform: scale(2); } }
+
+.callscreen__name { font-size: 27px; font-weight: 600; color: #fff; letter-spacing: -.02em; }
+.callscreen__role { font-size: 14px; color: rgba(220,231,210,.6); margin-top: 3px; }
+
+/* waveform */
+.viz { height: 56px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 20px; }
+.viz span { width: 5px; height: 8px; border-radius: 100px; background: rgba(220,231,210,.24); }
+.iphone.agent-speaking .viz span { background: #35D07F; animation: bar .6s ease-in-out infinite; }
+.iphone.you-speaking   .viz span { background: #7FB8E0; animation: bar .5s ease-in-out infinite; }
+.viz span:nth-child(1){animation-delay:0s} .viz span:nth-child(2){animation-delay:.08s}
+.viz span:nth-child(3){animation-delay:.16s} .viz span:nth-child(4){animation-delay:.24s}
+.viz span:nth-child(5){animation-delay:.32s} .viz span:nth-child(6){animation-delay:.4s}
+.viz span:nth-child(7){animation-delay:.32s} .viz span:nth-child(8){animation-delay:.24s}
+.viz span:nth-child(9){animation-delay:.16s} .viz span:nth-child(10){animation-delay:.08s}
+@keyframes bar { 0%,100%{ height:8px } 50%{ height:44px } }
+.callscreen__speaker { margin-top: 6px; font-family: var(--font-mono); font-size: 12px; color: rgba(220,231,210,.7); min-height: 16px; }
+
+/* bottom controls */
+.callscreen__bottom { display: flex; flex-direction: column; align-items: center; }
+
+/* iOS control cluster — only while live, for realism (non-functional) */
+.iosgrid {
+  display: none; grid-template-columns: repeat(3, 66px); gap: 22px; margin-bottom: 22px;
+}
+.iphone.is-live .iosgrid { display: grid; }
+.ioskey { display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: .9; }
+.ioskey__ic {
+  width: 62px; height: 62px; border-radius: 50%;
+  background: rgba(255,255,255,.14); backdrop-filter: blur(6px);
+  display: grid; place-items: center; font-size: 22px; color: #fff;
+}
+.ioskey__lb { font-size: 11px; color: rgba(220,231,210,.7); }
+
+/* main call / hangup button */
+.callmain { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+.callbtn {
+  width: 74px; height: 74px; border-radius: 50%; border: none; cursor: pointer; color: #fff;
+  display: grid; place-items: center;
+  transition: transform .12s ease, filter .15s ease, box-shadow .2s ease, background .2s ease;
+}
+.callbtn:active { transform: scale(.94); }
+.callbtn:disabled { opacity: .75; cursor: default; }
+.callbtn--go  { background: radial-gradient(120% 120% at 30% 20%, #22c46e, #0E8C4E); box-shadow: 0 10px 26px rgba(14,140,78,.5); }
+.callbtn--go:hover:not(:disabled)  { filter: brightness(1.08); }
+.callbtn--end { background: radial-gradient(120% 120% at 30% 20%, #ff5c52, #d5271e); box-shadow: 0 10px 26px rgba(213,39,30,.5); }
+.callbtn--end:hover:not(:disabled) { filter: brightness(1.08); }
+.callbtn--end svg { transform: rotate(135deg); }
+.callmain__label { font-size: 14px; font-weight: 500; color: rgba(234,241,234,.9); letter-spacing: .01em; }
+
+.callscreen__hint { text-align: center; font-size: 10.5px; line-height: 1.5; color: rgba(220,231,210,.42); margin-top: 12px; max-width: 240px; }
+
+/* iOS home indicator */
+.homebar { width: 132px; height: 5px; border-radius: 3px; background: rgba(234,241,234,.55); margin-top: 14px; }
+
+/* ============================ transcript ================================= */
+.call-log {
+  width: 340px; max-width: 90vw;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden;
+}
+.call-log__head {
+  padding: 12px 16px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); border-bottom: 1px solid var(--line); font-weight: 600;
+}
+.call-log__body { max-height: 300px; overflow-y: auto; padding: 12px 16px; }
+.call-log__row { margin-bottom: 12px; display: flex; flex-direction: column; gap: 3px; }
+.call-log__who { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; color: var(--muted); }
+.call-log__row--agent .call-log__who { color: var(--green-ink); }
+.call-log__msg { font-size: 14px; color: var(--ink-2); line-height: 1.45; }
+
+@media (max-width: 560px) { .call-page { padding: 20px 12px 50px; } }

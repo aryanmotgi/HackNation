@@ -1,5 +1,5 @@
 /* ============================================================================
-   Intake wizard — Loomhaus theme (matches the dashboard: green / white / black,
+   Intake wizard — Lowball theme (matches the dashboard: green / white / black,
    Schibsted Grotesk + IBM Plex Mono). Same operational look as the rest of the app.
    ========================================================================== */
 
@@ -68,7 +68,7 @@
 .launch-transition.show .lt-bar span { animation: lt-fill 1.4s ease .55s forwards; }
 @keyframes lt-fill { to { width: 100%; } }
 
-/* Loomhaus theme tweaks: green accents where Forge used lime/serif-italic */
+/* Lowball theme tweaks: green accents where Forge used lime/serif-italic */
 .fg-eyebrow { color: var(--lime) !important; }
 .fg-hero h1 { font-weight: 700; letter-spacing: -0.02em; }
 .fg-hero h1 .accent { color: var(--lime); font-style: normal; }
