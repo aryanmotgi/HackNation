@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Blueprint, Flask, jsonify, request
 
 from memory.retrieve import (
     _conn, create_customer, find_customer_by_phone, get_context,
@@ -32,7 +32,10 @@ from negotiation.scoring import price_capture, score_session
 from .spec import build_system_prompt, first_message, load_active_spec
 
 load_dotenv()
-app = Flask(__name__)
+
+# Exposed as a Blueprint so it can share ONE Flask process (and one Kuzu
+# connection) with the frontend — see serve.py. Still runnable standalone below.
+voice_bp = Blueprint("voice", __name__)
 
 MAX_TURNS = 12
 RAW_LOG = "/tmp/voice_payloads.log"
@@ -103,7 +106,24 @@ def _dc_value(dc: dict, key: str) -> Any:
     return v.get("value") if isinstance(v, dict) else v
 
 
-@app.route("/health", methods=["GET"])
+def _elevenlabs_signed_url(agent_id: str, key: str) -> Optional[str]:
+    """Fetch a signed WebSocket URL so the browser SDK can start an authenticated
+    conversation without exposing the API key client-side."""
+    import ssl
+    import urllib.request
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        ctx = ssl.create_default_context()
+    url = ("https://api.elevenlabs.io/v1/convai/conversation/get-signed-url"
+           f"?agent_id={agent_id}")
+    req = urllib.request.Request(url, headers={"xi-api-key": key})
+    with urllib.request.urlopen(req, context=ctx, timeout=10) as r:
+        return json.load(r).get("signed_url")
+
+
+@voice_bp.route("/health", methods=["GET"])
 def health():
     spec = load_active_spec()
     return jsonify({"ok": True, "active_job": spec.get("job_id"),
@@ -112,7 +132,7 @@ def health():
 
 # --- seam A: conversation-initiation webhook ---------------------------------
 
-@app.route("/demo/set_caller", methods=["POST"])
+@voice_bp.route("/demo/set_caller", methods=["POST"])
 def set_caller():
     """Pin who the NEXT call is from (e.g. cust_alpha) — for scripted demos where
     the web widget carries no phone number. Consumed by the next /call/init."""
@@ -122,7 +142,7 @@ def set_caller():
     return jsonify({"ok": True, "pinned_caller": _PINNED_CALLER})
 
 
-@app.route("/call/init", methods=["POST"])
+@voice_bp.route("/call/init", methods=["POST"])
 def call_init():
     """Identify the caller, load spec+memory, return the per-call prompt."""
     global _PINNED_CALLER, _LAST_CALLER, _ANON_SEQ
@@ -166,9 +186,64 @@ def call_init():
     })
 
 
+# --- dashboard call control: mint a signed URL + per-caller overrides --------
+
+@voice_bp.route("/call/token", methods=["GET"])
+def call_token():
+    """Start a REAL browser call from the dashboard for a chosen customer.
+
+    Returns a signed URL (so the API key stays server-side) plus the overrides
+    the browser SDK should pass: the customer's memory + confirmed spec injected
+    as a prompt override. This is why the SDK path fixes personalization — unlike
+    the test widget, client-side overrides ARE applied, so the confirmed spec is
+    reused verbatim on every call.
+    """
+    global _LAST_CALLER
+    customer_id = request.args.get("customer_id") or _PINNED_CALLER or "cust_alpha"
+    key = os.getenv("ELEVENLABS_API_KEY")
+    agent_id = os.getenv("ELEVENLABS_AGENT_ID", "")
+    if not key or not agent_id:
+        return jsonify({"error": "ELEVENLABS_API_KEY / ELEVENLABS_AGENT_ID not set"}), 500
+
+    spec = load_active_spec()
+    try:
+        ctx = get_context(customer_id)
+    except KeyError:
+        customer_id = create_customer("+10000000000", name="Web Caller")
+        ctx = get_context(customer_id)
+    _ensure_live_deal(spec, customer_id)
+    _LAST_CALLER = customer_id  # so /call/postcall attributes the quote correctly
+    deal = spec.get("deal", {})
+
+    try:
+        signed = _elevenlabs_signed_url(agent_id, key)
+    except Exception as e:  # noqa: BLE001 — surface the error to the caller
+        return jsonify({"error": f"signed-url fetch failed: {type(e).__name__}"}), 502
+
+    return jsonify({
+        "signed_url": signed,
+        "agent_id": agent_id,
+        "customer_id": customer_id,
+        "customer_name": ctx["customer"]["name"],
+        "overrides": {
+            "agent": {
+                "prompt": {"prompt": build_system_prompt(spec, ctx)},
+                "first_message": first_message(spec, ctx),
+            }
+        },
+        "dynamic_variables": {
+            "customer_id": customer_id,
+            "customer_name": ctx["customer"]["name"],
+            "product": deal.get("product"),
+            "floor_price": deal.get("floor_price"),
+            "target_price": deal.get("target_price"),
+        },
+    })
+
+
 # --- seam B: make_offer server tool (floor enforced in code) -----------------
 
-@app.route("/tool/make_offer", methods=["POST"])
+@voice_bp.route("/tool/make_offer", methods=["POST"])
 def make_offer():
     """Validate a proposed price against the floor + hard rules. Clamp if needed."""
     body = request.get_json(force=True, silent=True) or {}
@@ -212,7 +287,7 @@ def make_offer():
 
 # --- seam C: post-call webhook -----------------------------------------------
 
-@app.route("/call/postcall", methods=["POST"])
+@voice_bp.route("/call/postcall", methods=["POST"])
 def post_call():
     """Persist the call + an itemized quote from ElevenLabs' extracted data."""
     body = request.get_json(force=True, silent=True) or {}
@@ -282,7 +357,7 @@ def post_call():
 
 # --- ranked report -----------------------------------------------------------
 
-@app.route("/report", methods=["GET"])
+@voice_bp.route("/report", methods=["GET"])
 def report():
     """Rank every live-call quote by manufacturer value; cite recordings."""
     conn = _conn()
@@ -356,7 +431,14 @@ def _plain_recommendation(rows: list, spec: dict) -> str:
             f"price capture {best['price_capture']}. See the call recording for evidence.")
 
 
+def create_app() -> Flask:
+    """Standalone Flask app serving only the voice blueprint."""
+    app = Flask(__name__)
+    app.register_blueprint(voice_bp)
+    return app
+
+
 if __name__ == "__main__":
     port = int(os.getenv("VOICE_PORT", "5055"))
     print(f"[voice] webhook service on :{port} — /call/init /tool/make_offer /call/postcall /report")
-    app.run(host="0.0.0.0", port=port)
+    create_app().run(host="0.0.0.0", port=port)
