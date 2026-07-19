@@ -69,6 +69,17 @@ def _snapshot(force: bool = False) -> dict:
 
 
 @app.route("/")
+def intake_landing():
+    # Intake is the landing page — the manufacturer sets up their agent first.
+    return render_template("intake.html")
+
+
+@app.route("/intake")
+def intake():
+    return render_template("intake.html")
+
+
+@app.route("/dashboard")
 def dashboard():
     return render_template("dashboard.html")
 
@@ -101,11 +112,6 @@ def api_graph():
 
 
 # ── Intake wizard ────────────────────────────────────────────────────────────
-
-@app.route("/intake")
-def intake():
-    return render_template("intake.html")
-
 
 @app.route("/api/intake/parse", methods=["POST"])
 def api_intake_parse():

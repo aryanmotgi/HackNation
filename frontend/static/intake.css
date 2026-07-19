@@ -1,31 +1,51 @@
 /* ============================================================================
-   Forge intake wizard — self-contained theme (does NOT use styles.css)
-   Warm cream ground, near-white card, forest green + lime accents,
-   editorial serif headings (Newsreader) + grotesque body (Hanken Grotesk).
+   Intake wizard — Loomhaus theme (matches the dashboard: green / white / black,
+   Schibsted Grotesk + IBM Plex Mono). Same operational look as the rest of the app.
    ========================================================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
 :root {
-  --cream:        #F1F0E8;
-  --cream-2:      #F4F3EA;
+  --cream:        #F6F8F5;   /* app background */
+  --cream-2:      #FFFFFF;
   --card:         #FFFFFF;
-  --card-2:       #FCFCF9;
-  --forest:       #1E3A2B;
-  --forest-deep:  #16281E;
-  --lime:         #C4E85A;
-  --lime-bright:  #BDE84A;
-  --ink:          #1A211C;
-  --muted:        #6B746C;
-  --muted-soft:   #8A928A;
-  --line:         #E4E3D8;
-  --line-soft:    #EDECE2;
-  --danger:       #B23A3A;
-  --danger-bg:    #FBEDED;
-  --ok:           #2E7D4F;
-  --shadow:       0 18px 48px -22px rgba(30, 58, 43, 0.30);
-  --shadow-soft:  0 8px 26px -18px rgba(30, 58, 43, 0.28);
-  --serif: "Newsreader", Georgia, "Times New Roman", serif;
-  --sans:  "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  --card-2:       #FBFDFB;
+  --forest:       #0E1512;   /* dark surface + ink (near-black green) */
+  --forest-deep:  #0A0F0C;
+  --lime:         #0E8C4E;   /* green accent (was lime) */
+  --lime-bright:  #16A34A;
+  --ink:          #0E1512;
+  --muted:        #6C756E;
+  --muted-soft:   #98A09A;
+  --line:         #E5E9E3;
+  --line-soft:    #EEF1EC;
+  --danger:       #C8362E;
+  --danger-bg:    #FBECEA;
+  --ok:           #0E8C4E;
+  --shadow:       0 16px 44px -24px rgba(14, 21, 18, 0.28);
+  --shadow-soft:  0 6px 22px -16px rgba(14, 21, 18, 0.22);
+  --serif: "Schibsted Grotesk", system-ui, -apple-system, sans-serif;
+  --sans:  "Schibsted Grotesk", system-ui, -apple-system, sans-serif;
+  --mono:  "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 }
+
+/* Loomhaus theme tweaks: green accents where Forge used lime/serif-italic */
+.fg-eyebrow { color: var(--lime) !important; }
+.fg-hero h1 { font-weight: 700; letter-spacing: -0.02em; }
+.fg-hero h1 .accent { color: var(--lime); font-style: normal; }
+.fg-progress-count, .fg-progress-count b { font-family: var(--mono); font-weight: 600; }
+.fg-input:focus, .fg-textarea:focus, .fg-select:focus {
+  border-color: var(--lime) !important;
+  box-shadow: 0 0 0 3px rgba(14, 140, 78, 0.14) !important;
+}
+.fg-step-badge, .fg-check-item.active .fg-check-num, .fg-locked-tag,
+.fg-progress-count b { color: var(--ink); }
+.fg-step-badge { color: #fff; }
+.fg-upload-icon { color: #fff; }
+.fg-locked-tag { background: var(--lime); color: #fff; }
+.fg-check-item.active .fg-check-num { background: var(--lime); color: #fff; border-color: var(--lime); }
+.fg-mark { background: var(--lime); color: #fff; font-family: var(--sans); font-weight: 700; }
+.fg-wordmark { color: var(--ink); }
 
 * { box-sizing: border-box; }
 
