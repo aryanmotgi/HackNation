@@ -27,10 +27,12 @@ CUSTOMERS = [
 
 DEALS = [
     # id, product, floor, target, currency, status, customer_id
-    ("deal_alpha", "Cotton T-shirts 10k units", 3.20, 4.00, "USD", "open", "cust_alpha"),
-    ("deal_bravo", "Denim jackets 2k units", 12.00, 15.00, "USD", "open", "cust_bravo"),
-    ("deal_charlie", "Polo shirts 5k units", 5.00, 6.50, "USD", "open", "cust_charlie"),
-    ("deal_delta", "Hoodies 8k units", 8.00, 10.00, "USD", "open", "cust_delta"),
+    # One product line across every customer (same unit economics) — only the
+    # customer's negotiation style differs, so the demo isolates adaptation.
+    ("deal_alpha", "Cotton T-shirts · 10k units", 3.20, 4.00, "USD", "open", "cust_alpha"),
+    ("deal_bravo", "Cotton T-shirts · 6k units", 3.20, 4.00, "USD", "open", "cust_bravo"),
+    ("deal_charlie", "Cotton T-shirts · 5k units", 3.20, 4.00, "USD", "open", "cust_charlie"),
+    ("deal_delta", "Cotton T-shirts · 8k units", 3.20, 4.00, "USD", "open", "cust_delta"),
 ]
 
 PATTERNS = [
