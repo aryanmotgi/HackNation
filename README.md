@@ -84,3 +84,18 @@ from memory.retrieve import get_context, write_call, search_patterns
 - ✅ memory layer, negotiation arena, guardrails, escalation, scoring
 - ✅ 25-check smoke test passing on the offline mock
 - ⏳ live OpenAI call shape unverified (needs a key) · real embeddings · voice · frontend
+
+## Manufacturer frontend
+
+The manufacturer onboarding and call-rehearsal interface lives in `frontend/`.
+It collects company and product details, enforces pricing guardrails, configures
+the sales voice, and runs a two-speaker demo using the manufacturer's inputs.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+See `frontend/README.md` for the implemented flow and ElevenLabs integration
+handoff.
