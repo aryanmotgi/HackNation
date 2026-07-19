@@ -65,14 +65,15 @@ cp .env.example .env               # add OPENAI_API_KEY (model: gpt-5.6-terra)
 
 ## The demo in one minute
 
-Three customers, one agent, three strategies — all from memory:
+Same product for everyone — **Cotton T-shirts, floor 3.20 / target 4.00 USD**. Only the
+customer changes, so the outcome differences come purely from adaptation:
 
 | customer | style | what the agent does | outcome |
 |----------|-------|--------------------|---------|
 | Alpha Textiles | hard haggler | anchors high, grinds, holds above floor 3.20 | closes 3.68 |
-| Bravo Imports | responsive | rapport, closes fast near target | closes 15.60 |
+| Bravo Imports | responsive | rapport, closes fast near target | closes 4.16 |
 | Charlie Retail | staller | sees declining history → **escalates to human** | handed off |
-| Delta Fashion | lookalike | wins using a tactic **transferred from Alpha** | closes |
+| Delta Fashion | lookalike | wins using a tactic **transferred from Alpha** | closes 3.68 |
 
 Guardrails are enforced in code, not left to the model: never quote below floor,
 always propose a next step, escalate on declining outcomes.
