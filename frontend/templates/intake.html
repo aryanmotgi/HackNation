@@ -4,18 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Loomhaus — Set up your sales agent</title>
+  <link rel="stylesheet" href="/static/styles.css" />
   <link rel="stylesheet" href="/static/intake.css" />
 </head>
-<body>
+<body class="intake-app">
+<div class="app-shell">
+  {% include '_sidebar.html' %}
+  <div class="app-main">
 
   <!-- ── Header ─────────────────────────────────────────────────────── -->
-  <header class="fg-header">
-    <div class="fg-brand">
-      <div class="fg-mark">L</div>
-      <span class="fg-wordmark">LOOMHAUS</span>
-      <span class="fg-divider"></span>
-      <span class="fg-tagline">Sales Desk · agent setup</span>
-    </div>
+  <header class="app-topbar">
+    <strong>Agent setup</strong><span>/</span><span>Manufacturer intake</span>
     <div class="fg-header-right">
       <span class="fg-saved"><span class="fg-dot"></span> Draft saved</span>
       <a class="fg-exit" href="/dashboard">Save &amp; exit</a>
@@ -126,8 +125,8 @@
           <div class="fg-upload" id="upload-zone">
             <div class="fg-upload-icon">⬆</div>
             <div class="fg-upload-title">Drop a price sheet PDF, or click to browse</div>
-            <div class="fg-upload-sub">We'll read the product, pricing and terms so you can just review.</div>
-            <button class="fg-sample-link" id="use-sample" type="button">or use our sample PDF</button>
+            <div class="fg-upload-sub">A deterministic local parser reads the controlled PDF format. Review every extracted field before launch.</div>
+            <button class="fg-sample-link" id="use-sample" type="button">Use labeled demo price sheet</button>
             <input type="file" id="pdf-input" accept="application/pdf" hidden />
           </div>
 
@@ -137,32 +136,32 @@
             <button class="fg-replace" id="upload-replace" type="button">Replace</button>
           </div>
 
-          <div class="fg-group-label">Review extracted data</div>
+          <div class="fg-group-label">Review extracted data · controlled-format parser</div>
 
           <div class="fg-row">
             <div class="fg-field">
               <label class="fg-label" for="deal_product">Product <span class="fg-req">Required</span></label>
-              <input class="fg-input" id="deal_product" type="text" value="Cotton T-shirts" />
+              <input class="fg-input" id="deal_product" type="text" value="Custom 500 ml stainless-steel bottle" />
             </div>
             <div class="fg-field">
               <label class="fg-label" for="deal_sku">SKU</label>
-              <input class="fg-input" id="deal_sku" type="text" value="TS-CTN-180" />
+              <input class="fg-input" id="deal_sku" type="text" value="BTL-500-CUSTOM" />
             </div>
             <div class="fg-field">
               <label class="fg-label" for="deal_quantity">Minimum order</label>
-              <input class="fg-input" id="deal_quantity" type="number" value="10000" />
+              <input class="fg-input" id="deal_quantity" type="number" value="1000" />
             </div>
             <div class="fg-field">
               <label class="fg-label" for="deal_opening_price">Opening price</label>
-              <input class="fg-input" id="deal_opening_price" type="number" step="any" value="4.40" />
+              <input class="fg-input" id="deal_opening_price" type="number" step="any" value="5.20" />
             </div>
             <div class="fg-field">
               <label class="fg-label" for="deal_target_price">Target close</label>
-              <input class="fg-input" id="deal_target_price" type="number" step="any" value="4.00" />
+              <input class="fg-input" id="deal_target_price" type="number" step="any" value="4.80" />
             </div>
             <div class="fg-field">
               <label class="fg-label" for="deal_floor_price">Hard floor <span class="fg-req">Required</span></label>
-              <input class="fg-input" id="deal_floor_price" type="number" step="any" value="3.20" />
+              <input class="fg-input" id="deal_floor_price" type="number" step="any" value="4.45" />
               <div class="fg-hint">The agent cannot go below this</div>
             </div>
             <div class="fg-field">
@@ -171,12 +170,17 @@
             </div>
             <div class="fg-field">
               <label class="fg-label" for="deal_volume_price">Volume price</label>
-              <input class="fg-input" id="deal_volume_price" type="number" step="any" value="3.80" />
+              <input class="fg-input" id="deal_volume_price" type="number" step="any" value="4.60" />
             </div>
             <div class="fg-field">
               <label class="fg-label" for="deal_lead_time_days">Lead time (days)</label>
               <input class="fg-input" id="deal_lead_time_days" type="number" value="25" />
             </div>
+          </div>
+
+          <div class="fg-errors" id="pricing-errors" role="alert" aria-live="polite">
+            <h4>Pricing is unsafe</h4>
+            <ul id="pricing-errors-list"></ul>
           </div>
 
           <div class="fg-nav">
@@ -211,7 +215,7 @@
             </div>
             <div class="fg-field">
               <label class="fg-label" for="hr_require_approval_below">Require approval below</label>
-              <input class="fg-input" id="hr_require_approval_below" type="number" step="any" value="3.20" />
+              <input class="fg-input" id="hr_require_approval_below" type="number" step="any" value="4.45" />
             </div>
             <div class="fg-field">
               <label class="fg-label" for="hr_transfer_deals_above">Transfer deals above</label>
@@ -223,6 +227,16 @@
               <div class="fg-hint">Comma separated</div>
             </div>
           </div>
+
+          <div class="fg-group-label">Voice identity · ElevenLabs-ready</div>
+          <div class="fg-banner"><b>Never paste an API key here.</b> Enter only the public Agent ID; ElevenLabs credentials stay server-side. Live voice wiring is not connected yet.</div>
+          <div class="fg-row">
+            <div class="fg-field"><label class="fg-label" for="voice_agent_name">Agent name</label><input class="fg-input" id="voice_agent_name" type="text" value="Alex" /></div>
+            <div class="fg-field"><label class="fg-label" for="voice_phone">Outbound phone</label><input class="fg-input" id="voice_phone" type="tel" placeholder="Connect later" /></div>
+            <div class="fg-field"><label class="fg-label" for="voice_elevenlabs_agent_id">ElevenLabs Agent ID</label><input class="fg-input" id="voice_elevenlabs_agent_id" type="text" placeholder="agent_… (not an API key)" /></div>
+            <div class="fg-field"><label class="fg-label" for="voice_conversation_style">Conversation style</label><select class="fg-input" id="voice_conversation_style"><option value="warm_professional">Warm professional</option><option value="direct">Direct</option><option value="consultative">Consultative</option></select></div>
+          </div>
+          <label class="fg-toggle"><span><span class="fg-toggle-name">Required AI disclosure</span><span class="fg-toggle-desc">The agent introduces itself as an AI sales assistant at the start of every call.</span></span><span class="fg-switch"><input type="checkbox" checked disabled /><span class="track"></span></span></label>
 
           <div class="fg-group-label">When should the agent call a human?</div>
           <div class="fg-toggle-list">
@@ -264,6 +278,8 @@
       </main>
     </div>
   </div>
+  </div>
+</div>
 
   <!-- Launch → dashboard transition -->
   <div id="launch-transition" class="launch-transition" aria-hidden="true">

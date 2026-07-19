@@ -5,3 +5,8 @@ memory/data/
 .env
 jobs/
 samples/*.pdf
+frontend/node_modules/
+frontend/.vinext/
+frontend/.wrangler/
+frontend/dist/
+frontend/*.tsbuildinfo

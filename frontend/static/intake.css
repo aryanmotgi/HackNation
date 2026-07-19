@@ -721,3 +721,19 @@ a { color: inherit; }
   .fg-header { padding: 12px 18px; }
   .fg-tagline, .fg-divider { display: none; }
 }
+
+/* Intake lives inside the same manufacturer workspace shell as every other view. */
+.intake-app .app-main { min-width: 0; }
+.intake-app .app-topbar { font-family: var(--sans); }
+.intake-app .app-topbar .fg-header-right { margin-left: auto; }
+.intake-app .fg-shell { max-width: 1180px; }
+.intake-app .fg-hero { padding-top: 8px; }
+.intake-app .side-demo { color: #fff; }
+.intake-app .side-nav__link { color: var(--ink); }
+.intake-app .side-nav__link.active { color: var(--green-ink); }
+.intake-app .fg-check-title, .intake-app .fg-check-sub,
+.intake-app .fg-toggle-name, .intake-app .fg-toggle-desc { display: block; }
+@media (max-width: 820px) {
+  .intake-app .app-topbar { top: 60px; }
+  .intake-app .fg-shell { padding-top: 22px; }
+}

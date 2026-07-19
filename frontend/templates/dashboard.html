@@ -1,48 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sales Desk · Dashboard</title>
-  <link rel="stylesheet" href="/static/styles.css">
-  <script src="/static/dashboard.js" defer></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overview · Loomhaus</title>
+  <link rel="stylesheet" href="/static/styles.css"><script src="/static/dashboard.js" defer></script>
 </head>
 <body>
-  <nav class="nav">
-    <div class="nav__brand"><span class="nav__mark"></span> Loomhaus · Sales Desk</div>
-    <div class="nav__links">
-      <a class="nav__link nav__link--active" href="/dashboard">Dashboard</a>
-      <a class="nav__link" href="/messaging">Messaging</a>
-      <a class="nav__link" href="/graph">Graph</a>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+    <div class="app-main">
+      <header class="app-topbar"><strong>Overview</strong><span>/</span><span>Live Kuzu + negotiation data</span><span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span><a class="btn" href="/call">▶ Start rehearsal</a></header>
+      <main class="page">
+        <div class="dashboard-hero"><div><span class="demo-chip">DEMO WORKSPACE</span><h1>Good afternoon, Ria.</h1><p>Here’s what your voice sales agent is handling for Nova Manufacturing.</p></div><div><a class="btn btn--ghost" href="/intake">Manage agent</a><button id="replay-btn" class="btn" type="button">↻ Replay real negotiations</button></div></div>
+        <section id="metrics" class="metrics" aria-label="Desk metrics"><div class="loading">Loading live metrics…</div></section>
+        <section class="overview-grid">
+          <article class="active-demo-card">
+            <div class="demo-card-head"><div><span class="live-label"><i></i> READY FOR JUDGE DEMO</span><h2>West Coast Goods</h2><p>Maya Chen · English · Los Angeles</p></div><a href="/call">Start rehearsal →</a></div>
+            <div class="demo-facts"><div><small>DISCUSSING</small><strong>Custom 500 ml bottle</strong></div><div><small>REQUESTED</small><strong>2,000 units</strong></div><div><small>BUYER OFFER</small><strong>$4.20</strong></div><div><small>HARD FLOOR</small><strong>$4.45 🔒</strong></div></div>
+            <div class="strategy"><b>✦ Agent strategy</b><span>Hold the floor and trade price for volume: approved alternative is 5,000 units at $4.60.</span></div>
+          </article>
+          <article class="approval-card"><span class="demo-chip demo-chip--amber">1 PENDING</span><h2>Approval queue</h2><p>Human decisions your agent is waiting on.</p><div class="approval-item"><b>Atlas Imports</b><span>Requests net-60 terms on a high-value deal.</span><small>Agent confidence 61%</small></div><button class="btn" type="button">Review request</button></article>
+        </section>
+        <div class="section-head" id="accounts"><div><p class="eyebrow">REAL BACKEND SNAPSHOT</p><div class="section-title">Customer accounts</div></div><a href="/messaging">View negotiation evidence →</a></div>
+        <section id="card-grid" class="card-grid" aria-label="Customer cards"><div class="loading">Loading customer memory…</div></section>
+      </main>
     </div>
-    <div class="nav__spacer"></div>
-    <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
-  </nav>
-
-  <main class="page">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">MANUFACTURER · MEMORY-DRIVEN NEGOTIATION</p>
-        <h1 class="h1">Sales Desk</h1>
-        <p class="sub">Live negotiation outcomes across accounts, driven by per-customer memory.</p>
-      </div>
-      <button id="replay-btn" class="btn" type="button">↻ Replay round</button>
-    </div>
-
-    <section id="metrics" class="metrics" aria-label="Desk metrics"></section>
-
-    <div class="section-head">
-      <div class="section-title">Customer accounts</div>
-    </div>
-    <section id="card-grid" class="card-grid" aria-label="Customer cards">
-      <div class="loading">Loading desk…</div>
-    </section>
-  </main>
-
-  <div id="backdrop" class="panel-backdrop"></div>
-  <aside id="panel" class="panel" aria-hidden="true">
-    <button id="panel-close" class="panel__close" type="button" aria-label="Close">×</button>
-    <div id="panel-body"></div>
-  </aside>
+  </div>
+  <div id="backdrop" class="panel-backdrop"></div><aside id="panel" class="panel" aria-hidden="true"><button id="panel-close" class="panel__close" type="button" aria-label="Close">×</button><div id="panel-body"></div></aside>
 </body>
 </html>

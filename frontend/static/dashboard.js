@@ -98,8 +98,8 @@
     if (alert) fillStyle += ';background:var(--red)';
 
     return '' +
-      '<a class="card' + (alert ? " card--alert" : "") + '" href="#" ' +
-        'data-id="' + esc(c.customer_id) + '" role="button">' +
+      '<article class="card' + (alert ? " card--alert" : "") + '" ' +
+        'data-id="' + esc(c.customer_id) + '" role="button" tabindex="0">' +
         '<div class="card__top">' +
           '<div>' +
             '<div class="card__name">' + esc(c.name) + '</div>' +
@@ -121,7 +121,7 @@
           '<a class="card__meta" href="/messaging?focus=' + encodeURIComponent(c.customer_id) + '" ' +
             'data-thread="1">View thread →</a>' +
         '</div>' +
-      '</a>';
+      '</article>';
   }
 
   // ---- drawer -------------------------------------------------------------
@@ -242,6 +242,13 @@
     if (grid) grid.addEventListener("click", function (ev) {
       var thread = ev.target.closest("[data-thread]");
       if (thread) return; // let the "View thread →" link navigate normally
+      var card = ev.target.closest(".card");
+      if (!card) return;
+      ev.preventDefault();
+      openPanel(card.getAttribute("data-id"));
+    });
+    if (grid) grid.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
       var card = ev.target.closest(".card");
       if (!card) return;
       ev.preventDefault();
