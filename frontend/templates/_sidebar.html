@@ -1,0 +1,25 @@
+<aside class="app-sidebar" aria-label="Workspace navigation">
+  <a class="side-brand" href="/dashboard" aria-label="Loomhaus home">
+    <span class="side-brand__mark">L</span>
+    <span><strong>LOOMHAUS</strong><small>Voice sales OS</small></span>
+  </a>
+  <div class="side-workspace">
+    <span class="side-avatar">NM</span>
+    <span><strong>Nova Manufacturing</strong><small>Manufacturer workspace</small></span>
+  </div>
+  <nav class="side-nav">
+    <span class="side-nav__label">WORKSPACE</span>
+    <a class="side-nav__link {{ 'active' if request.path == '/dashboard' else '' }}" href="/dashboard"><span>⌂</span> Overview</a>
+    <a class="side-nav__link {{ 'active' if request.path == '/call' else '' }}" href="/call"><span>◉</span> Live demo <b>1</b></a>
+    <a class="side-nav__link {{ 'active' if request.path == '/messaging' else '' }}" href="/messaging"><span>◫</span> Negotiations</a>
+    <a class="side-nav__link" href="/dashboard#accounts"><span>◎</span> Customers</a>
+    <a class="side-nav__link {{ 'active' if request.path == '/graph' else '' }}" href="/graph"><span>⌘</span> Memory</a>
+    <span class="side-nav__label">MANAGE</span>
+    <a class="side-nav__link {{ 'active' if request.path in ['/', '/intake'] else '' }}" href="/intake"><span>◇</span> Agent setup</a>
+  </nav>
+  <div class="side-bottom">
+    <div class="agent-status"><span></span><strong>Agent online</strong><small>Demo workspace · 3 languages</small></div>
+    <a class="side-demo" href="/call">▶ Run judge demo</a>
+    <div class="side-user"><span>RS</span><div><strong>Ria Sethi</strong><small>Workspace admin</small></div></div>
+  </div>
+</aside>

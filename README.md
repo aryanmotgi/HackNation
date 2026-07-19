@@ -15,8 +15,8 @@ agent adapts per customer from memory; the model itself is never retrained.
 ```
 memory/        Kuzu graph + vector index — the foundation. get_context() / write_call().
 negotiation/   The agent, the customer bot, scoring, the arena loop, terminal demo.
-frontend/      Flask dashboard + messaging views (own localhost :5001).
-tests/         End-to-end smoke test.
+frontend/      Unified Flask workspace: intake, dashboard, voice demo, negotiations, memory.
+tests/         End-to-end negotiation and intake smoke tests.
 ```
 
 ```
@@ -51,17 +51,20 @@ cp .env.example .env               # add OPENAI_API_KEY (model: gpt-5.6-terra)
 .venv/bin/python -m negotiation.demo
 ```
 
-**Web dashboard** — manufacturer's screen (two views, one server on :5001):
+**Manufacturer workspace** — every user-facing flow on one server:
 ```bash
 .venv/bin/python -m frontend.app
-#   http://127.0.0.1:5001/            dashboard (overview, metrics, memory drawer)
-#   http://127.0.0.1:5001/messaging   live turn-by-turn negotiations, 3 side by side
-#   http://127.0.0.1:5001/graph       3D memory graph — every node connected, click for detail
+#   http://127.0.0.1:5001/            manufacturer setup + controlled PDF extraction
+#   http://127.0.0.1:5001/dashboard   overview, live backend metrics, approvals, customers
+#   http://127.0.0.1:5001/call        labeled two-voice judge rehearsal + structured result
+#   http://127.0.0.1:5001/messaging   turn-by-turn negotiation evidence across 3 styles
+#   http://127.0.0.1:5001/graph       live 3D Kuzu memory graph
 ```
 
 **Smoke test** — verify the whole stack (no API key needed):
 ```bash
 .venv/bin/python -m tests.smoke
+.venv/bin/python -m tests.smoke_intake
 ```
 
 ## The demo in one minute
@@ -79,6 +82,13 @@ customer changes, so the outcome differences come purely from adaptation:
 Guardrails are enforced in code, not left to the model: never quote below floor,
 always propose a next step, escalate on declining outcomes.
 
+The **Live demo** route adds a separate, clearly labeled rehearsal for the voice-call
+track: Nova Manufacturing negotiates with Maya Chen at West Coast Goods for custom
+500 ml bottles. It demonstrates a $5.20 opening, $4.80 target, $4.45 floor, an approved
+5,000-unit trade at $4.60, 25-day lead time, AI disclosure, and a sample-pending result.
+The script and browser voices are fixtures; the page never represents them as a live
+ElevenLabs call.
+
 ## Before the demo
 - **Swap the embedder** — `memory/embeddings.py` is a stub (deterministic, not semantic).
   `get_context` (graph) is fully real now; `search_patterns` (vectors) is noise until you
@@ -86,12 +96,7 @@ always propose a next step, escalate on declining outcomes.
 - **Add `OPENAI_API_KEY`** to make the reasoning model-generated (mock proves the logic).
 
 ## Status
-- ✅ memory layer, negotiation arena, guardrails, escalation, scoring, both web views
-- ✅ 25-check smoke test passing on the offline mock
-- ⏳ live OpenAI call shape unverified (needs a key) · ElevenLabs voice call (track 3)
-
-## Branches
-Stacked feature branches — merge order memory → arena → frontend:
-```
-feat/memory-layer  →  feat/negotiation-arena  →  feat/frontend-dashboard
-```
+- ✅ Kuzu memory, negotiation arena, guardrails, escalation, scoring, and intake job spec
+- ✅ unified responsive manufacturer workspace with honest demo/live boundaries
+- ✅ 25 negotiation checks + 15 intake checks passing offline
+- ⏳ live OpenAI call verification (needs a key) · live ElevenLabs transport · arbitrary-PDF vision extraction

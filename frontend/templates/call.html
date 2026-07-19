@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live demo · Loomhaus</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/call.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+    <div class="app-main">
+      <header class="app-topbar"><strong>Live demo</strong><span>/</span><span>Rehearsal fixture</span><a class="btn" href="/intake">Manage agent</a></header>
+      <main class="page call-page">
+        <section class="demo-disclosure"><b>▶ Rehearsal mode</b><span>This is a fixed judge demo using browser voices—not a live ElevenLabs call. The AI agent identifies itself on the call.</span></section>
+        <div class="live-top">
+          <div><p class="eyebrow">NOVA MANUFACTURING · WEST COAST GOODS</p><h1 class="h1" id="call-title">Judge demo ready</h1><p class="sub">Maya Chen · English · Los Angeles</p></div>
+          <span class="call-state" id="call-state"><i></i> NOT STARTED</span>
+        </div>
+        <section class="call-facts" aria-label="Call facts">
+          <div><small>PRODUCT</small><strong>Custom 500 ml bottle</strong><span>Printing + inspection</span></div>
+          <div><small>QUANTITY</small><strong id="fact-quantity">2,000 units</strong><span>MOQ 1,000</span></div>
+          <div><small>BUYER OFFER</small><strong>$4.20</strong><span>Below hard floor</span></div>
+          <div><small>STATUS</small><strong id="fact-status">Ready</strong><span id="fact-progress">0% complete</span></div>
+        </section>
+        <div class="call-layout">
+          <section class="call-console">
+            <header><div><h2>Live transcript</h2><span id="speaker-state">Ready</span></div><button id="sound-toggle" class="btn btn--ghost" type="button">◕ Sound on</button></header>
+            <div class="transcript" id="transcript">
+              <div class="call-empty" id="call-empty"><span>✦</span><h3>Show the negotiation—not just the voice</h3><p>Follow the agent’s reasoning, approved limits, memory context, volume trade, and structured result.</p><button class="btn" id="start-call" type="button">▶ Start two-voice rehearsal</button></div>
+            </div>
+            <footer class="call-controls"><button class="btn btn--ghost" id="handoff" type="button" disabled>↗ Hand off to human</button><button class="btn" id="end-call" type="button" disabled>■ End call</button></footer>
+          </section>
+          <aside class="call-rail">
+            <section class="rail-card"><div class="rail-title"><h2>Deal guardrails</h2><span>PRIVATE</span></div><p>Buyer cannot see these limits.</p><div class="price-ladder"><div><small>Opening price</small><strong>$5.20</strong></div><div><small>Target close</small><strong>$4.80</strong></div><div class="current"><small>Current offer</small><strong id="current-offer">$5.20</strong></div><div class="floor"><small>Hard floor</small><strong>$4.45</strong></div><div><small>Buyer quote</small><strong>$4.20</strong></div></div><div class="protected">✓ <span><b>Floor protected</b><small>Agent cannot quote below $4.45</small></span></div></section>
+            <section class="rail-card"><div class="rail-title"><h2>Memory loaded</h2><span>KUZU</span></div><p>Context read before answering.</p><ul class="memory-list"><li><span>⌘</span><div><b>Returning buyer</b><small>Price sensitivity recorded</small></div></li><li><span>◇</span><div><b>Winning tactic</b><small>Trade discount for volume</small></div></li><li><span>□</span><div><b>Open condition</b><small>Sample approval required</small></div></li></ul><a href="/graph">Open real memory graph →</a></section>
+          </aside>
+        </div>
+        <section class="call-result" id="call-result" hidden>
+          <div class="result-head"><span>✓</span><div><p class="eyebrow">STRUCTURED OUTCOME</p><h2>Deal advanced without crossing the floor.</h2><p>Maya accepted the approved volume trade, pending sample approval.</p></div><a class="btn" href="/dashboard">View dashboard</a></div>
+          <div class="result-grid"><div><small>Customer</small><strong>West Coast Goods</strong></div><div><small>Product</small><strong>Custom 500 ml bottle</strong></div><div><small>Quantity</small><strong>5,000 units</strong></div><div><small>Agreed price</small><strong>$4.60</strong></div><div><small>Hard floor</small><strong>$4.45 · protected</strong></div><div><small>Lead time</small><strong>25 days</strong></div><div><small>Stage</small><strong>Sample pending</strong></div><div><small>Next action</small><strong>Send paid sample</strong></div></div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

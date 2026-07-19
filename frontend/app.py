@@ -94,6 +94,12 @@ def graph():
     return render_template("graph.html")
 
 
+@app.route("/call")
+def call_demo():
+    """Frontend-only scripted voice rehearsal; no negotiation API contract changes."""
+    return render_template("call.html")
+
+
 @app.route("/api/sessions")
 def api_sessions():
     return jsonify(_snapshot())

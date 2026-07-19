@@ -1,37 +1,7 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Messaging · Loomhaus Sales Desk</title>
-  <link rel="stylesheet" href="/static/styles.css">
-  <script src="/static/messaging.js" defer></script>
-</head>
-<body>
-  <nav class="nav">
-    <div class="nav__brand"><span class="nav__mark"></span> Loomhaus · Sales Desk</div>
-    <div class="nav__links">
-      <a class="nav__link" href="/dashboard">Dashboard</a>
-      <a class="nav__link nav__link--active" href="/messaging">Messaging</a>
-      <a class="nav__link" href="/graph">Graph</a>
-    </div>
-    <div class="nav__spacer"></div>
-    <span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span>
-  </nav>
-
-  <div class="page page--wide">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">Live Negotiations</p>
-        <h1 class="h1">Messaging</h1>
-        <p class="sub">Watch the same agent adapt to each customer — reasoning shown under every move.</p>
-      </div>
-      <button id="replay-btn" class="btn">↻ Replay round</button>
-    </div>
-
-    <div id="board" class="board">
-      <div class="loading">Loading negotiations…</div>
-    </div>
-  </div>
-</body>
-</html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Negotiations · Loomhaus</title><link rel="stylesheet" href="/static/styles.css"><script src="/static/messaging.js" defer></script></head>
+<body><div class="app-shell">{% include '_sidebar.html' %}<div class="app-main">
+  <header class="app-topbar"><strong>Negotiations</strong><span>/</span><span>Turn-by-turn evidence</span><span id="mode-tag" class="mode-tag"><span class="mode-tag__dot"></span> …</span><a class="btn" href="/call">▶ Voice demo</a></header>
+  <main class="page page--wide"><div class="section-head page-heading"><div><p class="eyebrow">REAL NEGOTIATION ENGINE</p><h1 class="h1">Adaptation, with proof.</h1><p class="sub">Compare three buyer styles. Every offer, reason, guardrail hit, and outcome comes from the shared backend snapshot.</p></div><button id="replay-btn" class="btn btn--ghost">↻ Replay round</button></div><div class="engine-notice"><b>What judges should watch</b><span>The hard haggler gets disciplined counters, the responsive buyer closes quickly, and declining history triggers a human handoff.</span></div><div id="board" class="board"><div class="loading">Loading negotiations…</div></div></main>
+</div></div></body></html>

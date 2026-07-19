@@ -84,6 +84,25 @@
     $("prog-fill").style.width = (done / TOTAL * 100) + "%";
   }
 
+  function validatePricing() {
+    var opening = num("deal_opening_price");
+    var target = num("deal_target_price");
+    var floor = num("deal_floor_price");
+    var quantity = num("deal_quantity");
+    var errors = [];
+    if (!(quantity > 0)) errors.push("Minimum order must be greater than zero.");
+    if (!(opening > 0 && target > 0 && floor > 0)) errors.push("Opening, target, and hard-floor prices are required.");
+    if (opening > 0 && target > 0 && floor > 0 && !(opening >= target && target >= floor)) {
+      errors.push("Opening price must be at least the target, and target must be at least the hard floor.");
+    }
+    var box = $("pricing-errors");
+    var list = $("pricing-errors-list");
+    list.innerHTML = "";
+    errors.forEach(function (message) { var li = document.createElement("li"); li.textContent = message; list.appendChild(li); });
+    box.classList.toggle("show", errors.length > 0);
+    return errors.length === 0;
+  }
+
   // ── Step 3: live locked-rule banner ──────────────────────────────────
   function refreshLockedBanner() {
     var floor = num("deal_floor_price");
@@ -277,7 +296,8 @@
         phone: val("voice_phone"),
         voice_style: state.voice_style,
         conversation_style: val("voice_conversation_style"),
-        elevenlabs_agent_id: null,
+        // Agent ID is safe client input. The ElevenLabs API key must remain server-side.
+        elevenlabs_agent_id: val("voice_elevenlabs_agent_id") || null,
       },
       questions: state.questions,
       source: "pdf",
@@ -367,7 +387,9 @@
     // Back / Next buttons
     document.querySelectorAll("[data-next]").forEach(function (b) {
       b.addEventListener("click", function () {
-        gotoStep(Number(b.getAttribute("data-next")));
+        var next = Number(b.getAttribute("data-next"));
+        if (state.step === 2 && next === 3 && !validatePricing()) return;
+        gotoStep(next);
       });
     });
 
@@ -391,6 +413,9 @@
         }
       });
     }
+    ["deal_opening_price", "deal_target_price", "deal_floor_price", "deal_quantity"].forEach(function (id) {
+      var field = $(id); if (field) field.addEventListener("input", function () { $("pricing-errors").classList.remove("show"); });
+    });
 
     // Launch (final step)
     $("launch").addEventListener("click", launch);
