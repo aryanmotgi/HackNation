@@ -106,6 +106,23 @@ def _dc_value(dc: dict, key: str) -> Any:
     return v.get("value") if isinstance(v, dict) else v
 
 
+def _elevenlabs_signed_url(agent_id: str, key: str) -> Optional[str]:
+    """Fetch a signed WebSocket URL so the browser SDK can start an authenticated
+    conversation without exposing the API key client-side."""
+    import ssl
+    import urllib.request
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        ctx = ssl.create_default_context()
+    url = ("https://api.elevenlabs.io/v1/convai/conversation/get-signed-url"
+           f"?agent_id={agent_id}")
+    req = urllib.request.Request(url, headers={"xi-api-key": key})
+    with urllib.request.urlopen(req, context=ctx, timeout=10) as r:
+        return json.load(r).get("signed_url")
+
+
 @voice_bp.route("/health", methods=["GET"])
 def health():
     spec = load_active_spec()
@@ -165,6 +182,61 @@ def call_init():
                 "prompt": {"prompt": build_system_prompt(spec, ctx)},
                 "first_message": first_message(spec, ctx),
             }
+        },
+    })
+
+
+# --- dashboard call control: mint a signed URL + per-caller overrides --------
+
+@voice_bp.route("/call/token", methods=["GET"])
+def call_token():
+    """Start a REAL browser call from the dashboard for a chosen customer.
+
+    Returns a signed URL (so the API key stays server-side) plus the overrides
+    the browser SDK should pass: the customer's memory + confirmed spec injected
+    as a prompt override. This is why the SDK path fixes personalization — unlike
+    the test widget, client-side overrides ARE applied, so the confirmed spec is
+    reused verbatim on every call.
+    """
+    global _LAST_CALLER
+    customer_id = request.args.get("customer_id") or _PINNED_CALLER or "cust_alpha"
+    key = os.getenv("ELEVENLABS_API_KEY")
+    agent_id = os.getenv("ELEVENLABS_AGENT_ID", "")
+    if not key or not agent_id:
+        return jsonify({"error": "ELEVENLABS_API_KEY / ELEVENLABS_AGENT_ID not set"}), 500
+
+    spec = load_active_spec()
+    try:
+        ctx = get_context(customer_id)
+    except KeyError:
+        customer_id = create_customer("+10000000000", name="Web Caller")
+        ctx = get_context(customer_id)
+    _ensure_live_deal(spec, customer_id)
+    _LAST_CALLER = customer_id  # so /call/postcall attributes the quote correctly
+    deal = spec.get("deal", {})
+
+    try:
+        signed = _elevenlabs_signed_url(agent_id, key)
+    except Exception as e:  # noqa: BLE001 — surface the error to the caller
+        return jsonify({"error": f"signed-url fetch failed: {type(e).__name__}"}), 502
+
+    return jsonify({
+        "signed_url": signed,
+        "agent_id": agent_id,
+        "customer_id": customer_id,
+        "customer_name": ctx["customer"]["name"],
+        "overrides": {
+            "agent": {
+                "prompt": {"prompt": build_system_prompt(spec, ctx)},
+                "first_message": first_message(spec, ctx),
+            }
+        },
+        "dynamic_variables": {
+            "customer_id": customer_id,
+            "customer_name": ctx["customer"]["name"],
+            "product": deal.get("product"),
+            "floor_price": deal.get("floor_price"),
+            "target_price": deal.get("target_price"),
         },
     })
 
