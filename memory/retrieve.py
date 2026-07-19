@@ -189,6 +189,8 @@ def write_call(
     sentiment: float,
     outcome_score: float,
     ts: str,
+    recording_url: Optional[str] = None,
+    transcript: Optional[str] = None,
 ) -> str:
     """Persist a post-call record (summary, not raw transcript) and its edges.
 
@@ -197,15 +199,19 @@ def write_call(
     live vector index — persisted HNSW indexes don't rebuild cleanly on reopen, so
     Call vector search reflects the last seed build. Re-seed to refresh it.
 
+    recording_url / transcript are optional evidence from a live voice call
+    (ElevenLabs); the ranked report cites them. Older callers omit them (None).
+
     Returns the generated call id.
     """
     conn = _conn()
     call_id = f"call_{customer_id}_{ts}".replace(":", "").replace("-", "")
     conn.execute(
         "CREATE (:Call {id:$id, ts:$ts, summary:$summary, sentiment:$sent, "
-        "outcome_score:$score, embedding:$emb})",
+        "outcome_score:$score, embedding:$emb, recording_url:$rec, transcript:$tr})",
         {"id": call_id, "ts": ts, "summary": summary, "sent": sentiment,
-         "score": outcome_score, "emb": embed(summary)},
+         "score": outcome_score, "emb": embed(summary),
+         "rec": recording_url, "tr": transcript},
     )
     conn.execute(
         "MATCH (c:Customer {id:$cid}), (k:Call {id:$kid}) CREATE (c)-[:HAD_CALL]->(k)",
@@ -216,3 +222,94 @@ def write_call(
         {"kid": call_id, "did": deal_id},
     )
     return call_id
+
+
+# --- Live-call helpers (voice branch) ---------------------------------------
+
+def normalize_phone(phone: str) -> str:
+    """Best-effort E.164 normalization so lookup and write agree.
+
+    Keeps digits, assumes US (+1) for bare 10-digit numbers. Idempotent.
+    """
+    if not phone:
+        return ""
+    digits = "".join(ch for ch in str(phone) if ch.isdigit())
+    if len(digits) == 10:
+        digits = "1" + digits
+    return "+" + digits if digits else ""
+
+
+def find_customer_by_phone(phone: str) -> Optional[str]:
+    """Return the Customer id whose phone matches (E.164-normalized), or None."""
+    p = normalize_phone(phone)
+    if not p:
+        return None
+    rows = _rows(_conn().execute(
+        "MATCH (c:Customer) WHERE c.phone = $p RETURN c.id LIMIT 1", {"p": p},
+    ))
+    return rows[0][0] if rows else None
+
+
+def create_customer(
+    phone: str,
+    name: Optional[str] = None,
+    region: str = "Unknown",
+    style: str = "responsive",
+    risk_flags: Optional[list[str]] = None,
+) -> str:
+    """Create a Customer for a first-time inbound caller. Returns the new id.
+
+    The id is derived from the normalized phone so re-creation is idempotent-ish
+    and the caller is stably identifiable across calls.
+    """
+    p = normalize_phone(phone)
+    cid = "cust_" + (p.lstrip("+") or "unknown")
+    conn = _conn()
+    existing = _rows(conn.execute(
+        "MATCH (c:Customer {id:$id}) RETURN c.id", {"id": cid}))
+    if existing:
+        return cid
+    conn.execute(
+        "CREATE (:Customer {id:$id, name:$name, region:$region, "
+        "negotiation_style:$style, risk_flags:$flags, phone:$phone})",
+        {"id": cid, "name": name or f"Caller {p[-4:]}" if p else "Caller",
+         "region": region, "style": style, "flags": risk_flags or [], "phone": p},
+    )
+    return cid
+
+
+def write_quote(
+    call_id: str,
+    customer_id: str,
+    *,
+    product: str,
+    unit_price: Optional[float],
+    quantity: Optional[int],
+    currency: str = "USD",
+    fees: Optional[list[str]] = None,
+    terms: Optional[str] = None,
+    sweetener: Optional[str] = None,
+    outcome: str = "declined",
+    ts: str,
+) -> str:
+    """Persist an itemized Quote for a call and link it (Call)-[:PRODUCED]->(Quote).
+
+    outcome is one of 'closed' | 'callback' | 'declined'. total is derived from
+    unit_price * quantity when both are present. Feeds the ranked report.
+    """
+    conn = _conn()
+    quote_id = f"quote_{call_id}"
+    total = (unit_price * quantity) if (unit_price is not None and quantity is not None) else None
+    conn.execute(
+        "CREATE (:Quote {id:$id, call_id:$call, customer_id:$cust, product:$product, "
+        "unit_price:$unit, quantity:$qty, currency:$cur, fees:$fees, terms:$terms, "
+        "total:$total, sweetener:$sweet, outcome:$outcome, ts:$ts})",
+        {"id": quote_id, "call": call_id, "cust": customer_id, "product": product,
+         "unit": unit_price, "qty": quantity, "cur": currency, "fees": fees or [],
+         "terms": terms, "total": total, "sweet": sweetener, "outcome": outcome, "ts": ts},
+    )
+    conn.execute(
+        "MATCH (k:Call {id:$kid}), (q:Quote {id:$qid}) CREATE (k)-[:PRODUCED]->(q)",
+        {"kid": call_id, "qid": quote_id},
+    )
+    return quote_id

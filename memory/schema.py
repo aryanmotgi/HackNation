@@ -3,8 +3,13 @@
 One embedded engine holds the graph AND the vector index (native HNSW), so graph
 traversal + semantic search + RAG all live here. No separate vector DB.
 
-Nodes:   Customer, Deal, Call, Pattern
-Rels:    HAS_DEAL, HAD_CALL, ABOUT, EXHIBITS, WORKED, SIMILAR_TO
+Nodes:   Customer, Deal, Call, Pattern, Quote
+Rels:    HAS_DEAL, HAD_CALL, ABOUT, EXHIBITS, WORKED, SIMILAR_TO, PRODUCED
+
+Live-call additions (voice branch): Customer.phone (inbound caller lookup),
+Call.recording_url + Call.transcript (evidence), and a Quote node linked from the
+Call that produced it (itemized, comparable quotes for the ranked report). All are
+additive — existing readers (get_context/write_call) are unchanged.
 
 Public API:
     connect(db_path)          -> (db, conn)      open/create the database
@@ -49,6 +54,7 @@ def create_schema(conn: kuzu.Connection) -> None:
             region STRING,
             negotiation_style STRING,
             risk_flags STRING[],
+            phone STRING,
             PRIMARY KEY(id)
         )
         """
@@ -75,6 +81,29 @@ def create_schema(conn: kuzu.Connection) -> None:
             sentiment DOUBLE,
             outcome_score DOUBLE,
             embedding FLOAT[{EMBED_DIM}],
+            recording_url STRING,
+            transcript STRING,
+            PRIMARY KEY(id)
+        )
+        """
+    )
+    # Quote: the itemized, comparable outcome of a call (drives the ranked report).
+    conn.execute(
+        """
+        CREATE NODE TABLE IF NOT EXISTS Quote(
+            id STRING,
+            call_id STRING,
+            customer_id STRING,
+            product STRING,
+            unit_price DOUBLE,
+            quantity INT64,
+            currency STRING,
+            fees STRING[],
+            terms STRING,
+            total DOUBLE,
+            sweetener STRING,
+            outcome STRING,
+            ts STRING,
             PRIMARY KEY(id)
         )
         """
@@ -100,6 +129,27 @@ def create_schema(conn: kuzu.Connection) -> None:
     conn.execute("CREATE REL TABLE IF NOT EXISTS WORKED(FROM Pattern TO Customer, weight DOUBLE)")
     # SIMILAR_TO: lookalike customers (precomputed in seed for demo reliability).
     conn.execute("CREATE REL TABLE IF NOT EXISTS SIMILAR_TO(FROM Customer TO Customer, weight DOUBLE)")
+    # PRODUCED: the Call that produced a Quote (live calls → itemized quote).
+    conn.execute("CREATE REL TABLE IF NOT EXISTS PRODUCED(FROM Call TO Quote)")
+
+    # --- Migrations: upgrade an existing DB in place (columns added on the voice
+    # branch). Kuzu 0.11 has no ADD COLUMN IF NOT EXISTS, so ignore "already exists".
+    _migrate_add_columns(conn)
+
+
+def _migrate_add_columns(conn: kuzu.Connection) -> None:
+    """Add live-call columns to pre-existing tables. Idempotent, safe to re-run."""
+    for stmt in (
+        "ALTER TABLE Customer ADD phone STRING",
+        "ALTER TABLE Call ADD recording_url STRING",
+        "ALTER TABLE Call ADD transcript STRING",
+    ):
+        try:
+            conn.execute(stmt)
+        except RuntimeError as e:
+            msg = str(e).lower()
+            if "already exists" not in msg and "already has" not in msg and "duplicate" not in msg:
+                raise
 
 
 def build_vector_indexes(conn: kuzu.Connection) -> None:
