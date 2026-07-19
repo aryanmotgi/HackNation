@@ -1,0 +1,20 @@
+# Render blueprint — one always-on web service (free tier).
+# The Kuzu graph is re-seeded on every boot (serve.py), so no persistent disk
+# is required for the demo. Set the secret keys in the Render dashboard.
+services:
+  - type: web
+    name: lowball
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: OPENAI_MODEL
+        value: gpt-5.6-terra
+      - key: OPENAI_API_KEY
+        sync: false        # set as a secret in the Render dashboard
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_AGENT_ID
+        sync: false

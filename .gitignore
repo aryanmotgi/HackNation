@@ -5,3 +5,7 @@ memory/data/
 .env
 jobs/
 samples/*.pdf
+
+# Remotion video project (node_modules, renders)
+video/node_modules/
+video/out/

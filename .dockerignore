@@ -1,0 +1,12 @@
+.git/
+.venv/
+video/
+out/
+__pycache__/
+**/__pycache__/
+*.pyc
+memory/data/
+jobs/
+.env
+*.md
+node_modules/
