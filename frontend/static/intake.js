@@ -348,6 +348,12 @@
         updateProgress();
         updateChecklist();
         panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        // Cool transition into the dashboard.
+        setTimeout(function () {
+          var t = $("launch-transition");
+          t.classList.add("show");
+          setTimeout(function () { window.location.href = "/dashboard"; }, 2100);
+        }, 700);
       })
       .catch(function (e) {
         btn.disabled = false;
