@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Blueprint, Flask, jsonify, request
 
 from memory.retrieve import (
     _conn, create_customer, find_customer_by_phone, get_context,
@@ -32,7 +32,10 @@ from negotiation.scoring import price_capture, score_session
 from .spec import build_system_prompt, first_message, load_active_spec
 
 load_dotenv()
-app = Flask(__name__)
+
+# Exposed as a Blueprint so it can share ONE Flask process (and one Kuzu
+# connection) with the frontend — see serve.py. Still runnable standalone below.
+voice_bp = Blueprint("voice", __name__)
 
 MAX_TURNS = 12
 RAW_LOG = "/tmp/voice_payloads.log"
@@ -103,7 +106,7 @@ def _dc_value(dc: dict, key: str) -> Any:
     return v.get("value") if isinstance(v, dict) else v
 
 
-@app.route("/health", methods=["GET"])
+@voice_bp.route("/health", methods=["GET"])
 def health():
     spec = load_active_spec()
     return jsonify({"ok": True, "active_job": spec.get("job_id"),
@@ -112,7 +115,7 @@ def health():
 
 # --- seam A: conversation-initiation webhook ---------------------------------
 
-@app.route("/demo/set_caller", methods=["POST"])
+@voice_bp.route("/demo/set_caller", methods=["POST"])
 def set_caller():
     """Pin who the NEXT call is from (e.g. cust_alpha) — for scripted demos where
     the web widget carries no phone number. Consumed by the next /call/init."""
@@ -122,7 +125,7 @@ def set_caller():
     return jsonify({"ok": True, "pinned_caller": _PINNED_CALLER})
 
 
-@app.route("/call/init", methods=["POST"])
+@voice_bp.route("/call/init", methods=["POST"])
 def call_init():
     """Identify the caller, load spec+memory, return the per-call prompt."""
     global _PINNED_CALLER, _LAST_CALLER, _ANON_SEQ
@@ -168,7 +171,7 @@ def call_init():
 
 # --- seam B: make_offer server tool (floor enforced in code) -----------------
 
-@app.route("/tool/make_offer", methods=["POST"])
+@voice_bp.route("/tool/make_offer", methods=["POST"])
 def make_offer():
     """Validate a proposed price against the floor + hard rules. Clamp if needed."""
     body = request.get_json(force=True, silent=True) or {}
@@ -212,7 +215,7 @@ def make_offer():
 
 # --- seam C: post-call webhook -----------------------------------------------
 
-@app.route("/call/postcall", methods=["POST"])
+@voice_bp.route("/call/postcall", methods=["POST"])
 def post_call():
     """Persist the call + an itemized quote from ElevenLabs' extracted data."""
     body = request.get_json(force=True, silent=True) or {}
@@ -282,7 +285,7 @@ def post_call():
 
 # --- ranked report -----------------------------------------------------------
 
-@app.route("/report", methods=["GET"])
+@voice_bp.route("/report", methods=["GET"])
 def report():
     """Rank every live-call quote by manufacturer value; cite recordings."""
     conn = _conn()
@@ -356,7 +359,14 @@ def _plain_recommendation(rows: list, spec: dict) -> str:
             f"price capture {best['price_capture']}. See the call recording for evidence.")
 
 
+def create_app() -> Flask:
+    """Standalone Flask app serving only the voice blueprint."""
+    app = Flask(__name__)
+    app.register_blueprint(voice_bp)
+    return app
+
+
 if __name__ == "__main__":
     port = int(os.getenv("VOICE_PORT", "5055"))
     print(f"[voice] webhook service on :{port} — /call/init /tool/make_offer /call/postcall /report")
-    app.run(host="0.0.0.0", port=port)
+    create_app().run(host="0.0.0.0", port=port)
