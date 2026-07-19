@@ -58,7 +58,7 @@ function addLine(role, text) {
 }
 
 // --- call lifecycle -----------------------------------------------------------
-async function startCall() {
+async function startCall(greeting) {
   if (!AGENT) { setStatus('No agent configured', 'red'); return; }
   state = 'connecting';
   phone.classList.add('is-connecting');
@@ -70,6 +70,7 @@ async function startCall() {
   try {
     convo = await Conversation.startSession({
       agentId: AGENT,
+      overrides: greeting ? { agent: { firstMessage: greeting } } : undefined,
       onConnect: () => {
         state = 'live';
         phone.classList.remove('is-connecting');
@@ -152,3 +153,6 @@ callBtn.addEventListener('click', () => {
 });
 
 window.addEventListener('beforeunload', () => { if (convo) { try { convo.endSession(); } catch (e) {} } });
+
+// judge-demo tour hook: start the call and have the agent greet the judges
+window.startTourCall = function (greeting) { if (state === 'idle') startCall(greeting); };
